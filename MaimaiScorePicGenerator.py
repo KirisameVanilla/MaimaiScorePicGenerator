@@ -66,7 +66,7 @@ canvas.paste(resized_type, (900, 400),resized_type)
 dx_rank: Literal[1,2,3,4,5] = 4
 dx_star = Image.open(base_dir + f"assets\\music_icon_dxstar_{dx_rank}.png").convert("RGBA")
 resized_dx_star = dx_star.resize((105, 105))
-canvas.paste(resized_dx_star, (900, 550), resized_dx_star)
+canvas.paste(resized_dx_star, (600, 150), resized_dx_star)
 
 # 画分数
 score = "100"
