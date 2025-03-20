@@ -35,23 +35,23 @@ canvas.paste(resized_diff, (30, 30),resized_diff)
 print(resized_diff.width, resized_diff.height)
 
 # 写歌名
-song_name = "AMAZING MIGHTYYYY!!!!"
-song_name_font = ImageFont.truetype(base_dir + "assets\\NotoSansCJKBold.otf", 40)
+song_name = "Believe the Rainbow"
+song_name_font = ImageFont.truetype(base_dir + "assets\\SourceHanSans-Bold.otf", 50)
 song_name_color = (0, 0, 0)
-song_name_position = (440, 50)
+song_name_position = (440, 35)
 draw.text(song_name_position, song_name, font=song_name_font, fill=song_name_color)
 
 # 画DX/标准
 music_dx = Image.open(base_dir + "assets\\music_dx.png").convert("RGBA")
 music_standard = Image.open(base_dir + "assets\\music_standard.png").convert("RGBA")
-type = music_dx
+type = music_standard
 resized_type = type.resize((type.width * 3 // 2, type.height * 3 // 2))
 canvas.paste(resized_type, (10, 130),resized_type)
 
 # 画AP/AP+
 ap = Image.open(base_dir + "assets\\ap.png").convert("RGBA")
 ap_plus = Image.open(base_dir + "assets\\applus.png").convert("RGBA")
-type = ap_plus
+type = ap
 resized_type = type.resize((type.width * 5 // 2, type.height * 5 // 2))
 canvas.paste(resized_type, (600, 400),resized_type)
 
@@ -63,7 +63,7 @@ resized_type = type.resize((type.width * 3 // 2, type.height * 3 // 2))
 canvas.paste(resized_type, (900, 400),resized_type)
 
 # 画 DX Star
-dx_rank: Literal[1,2,3,4,5] = 5
+dx_rank: Literal[1,2,3,4,5] = 4
 dx_star = Image.open(base_dir + f"assets\\music_icon_dxstar_{dx_rank}.png").convert("RGBA")
 resized_dx_star = dx_star.resize((105, 105))
 canvas.paste(resized_dx_star, (900, 550), resized_dx_star)
@@ -82,7 +82,7 @@ bbox = score_font.getbbox(score)
 score_width = bbox[2] - bbox[0]
 score_height = bbox[3] - bbox[1]
 
-subscore = ".0000%"
+subscore = ".9642%"
 subscore_font = ImageFont.truetype(base_dir + "assets\\NotoSansCJKBold.otf", 80)
 subscore_height = subscore_font.getbbox(subscore)[3] - subscore_font.getbbox(subscore)[1]
 suboffsets = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
@@ -93,6 +93,8 @@ draw.text(subscore_position, subscore, font=subscore_font, fill=score_color)
 
 # 保存图片
 output_path = base_dir + "output.png"
-canvas.save(output_path)
+output_path43 = base_dir + "output43.png"
 canvas43.paste(canvas, (0, 120), canvas)
+canvas.save(output_path)
+canvas43.save(output_path43)
 canvas.show()
