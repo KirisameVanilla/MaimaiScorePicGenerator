@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 base_dir = "C:\\Users\\Vanillaaaa\\Desktop\\MaimaiScorePicGenerator\\"
 
@@ -9,6 +9,7 @@ background_color = (130, 100, 200, 255)  # 类似原图的紫色
 
 # 创建画布
 canvas = Image.new("RGBA", (canvas_width, canvas_height), background_color)
+canvas43 = Image.new("RGBA", (canvas_width, 960), background_color)
 draw = ImageDraw.Draw(canvas)
 
 # 加载曲绘并缩放放置在左侧
@@ -29,8 +30,23 @@ diff_remaster = Image.open(base_dir + "diff_remaster.png").convert("RGBA")
 diff_expert = Image.open(base_dir + "diff_expert.png").convert("RGBA")
 diff = diff_remaster
 resized_diff = diff.resize((diff.width * 5 // 2, diff.height * 5 // 2))
-pixels = resized_diff.load()
 canvas.paste(resized_diff, (30, 30),resized_diff)
+print(resized_diff.width, resized_diff.height)
+
+# 写歌名
+song_name = "AMAZING MIGHTYYYY!!!!"
+song_name_font = ImageFont.truetype(base_dir + "NotoSansCJKLight.otf", 40)
+song_name_color = (0, 0, 0)
+song_name_x = 440
+song_name_y = 50
+draw.text((song_name_x, song_name_y), song_name, font=song_name_font, fill=song_name_color)
+
+# 画DX/标准
+music_dx = Image.open(base_dir + "music_dx.png").convert("RGBA")
+music_standard = Image.open(base_dir + "music_standard.png").convert("RGBA")
+type = music_dx
+resized_type = type.resize((type.width * 3 // 2, type.height * 3 // 2))
+canvas.paste(resized_type, (10, 130),resized_type)
 
 # 画 "CLEAR!" 按钮
 clear_button_color = (255, 220, 80)
@@ -85,4 +101,5 @@ draw.rectangle(
 # 保存图片
 output_path = base_dir + "output.png"
 canvas.save(output_path)
+canvas43.paste(canvas, (0, 120), canvas)
 canvas.show()
