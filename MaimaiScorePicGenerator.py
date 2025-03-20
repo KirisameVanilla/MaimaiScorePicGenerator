@@ -1,3 +1,4 @@
+from typing import Literal
 from PIL import Image, ImageDraw, ImageFont
 
 base_dir = "C:\\Users\\Vanillaaaa\\Desktop\\MaimaiScorePicGenerator\\"
@@ -25,78 +26,70 @@ title_bar_height = 100
 draw.rounded_rectangle([(20, 20), (canvas_width - 20, 20 + title_bar_height)], fill=title_bar_color, radius=10)
 
 # 画难度
-diff_master = Image.open(base_dir + "diff_master.png").convert("RGBA")
-diff_remaster = Image.open(base_dir + "diff_remaster.png").convert("RGBA")
-diff_expert = Image.open(base_dir + "diff_expert.png").convert("RGBA")
-diff = diff_remaster
+diff_master = Image.open(base_dir + "assets\\diff_master.png").convert("RGBA")
+diff_remaster = Image.open(base_dir + "assets\\diff_remaster.png").convert("RGBA")
+diff_expert = Image.open(base_dir + "assets\\diff_expert.png").convert("RGBA")
+diff = diff_master
 resized_diff = diff.resize((diff.width * 5 // 2, diff.height * 5 // 2))
 canvas.paste(resized_diff, (30, 30),resized_diff)
 print(resized_diff.width, resized_diff.height)
 
 # 写歌名
 song_name = "AMAZING MIGHTYYYY!!!!"
-song_name_font = ImageFont.truetype(base_dir + "NotoSansCJKLight.otf", 40)
+song_name_font = ImageFont.truetype(base_dir + "assets\\NotoSansCJKBold.otf", 40)
 song_name_color = (0, 0, 0)
-song_name_x = 440
-song_name_y = 50
-draw.text((song_name_x, song_name_y), song_name, font=song_name_font, fill=song_name_color)
+song_name_position = (440, 50)
+draw.text(song_name_position, song_name, font=song_name_font, fill=song_name_color)
 
 # 画DX/标准
-music_dx = Image.open(base_dir + "music_dx.png").convert("RGBA")
-music_standard = Image.open(base_dir + "music_standard.png").convert("RGBA")
+music_dx = Image.open(base_dir + "assets\\music_dx.png").convert("RGBA")
+music_standard = Image.open(base_dir + "assets\\music_standard.png").convert("RGBA")
 type = music_dx
 resized_type = type.resize((type.width * 3 // 2, type.height * 3 // 2))
 canvas.paste(resized_type, (10, 130),resized_type)
 
-# 画 "CLEAR!" 按钮
-clear_button_color = (255, 220, 80)
-clear_button_x = canvas_width - 150
-clear_button_y = 20
-clear_button_w = 120
-clear_button_h = 40
-draw.rounded_rectangle(
-    [(clear_button_x, clear_button_y), (clear_button_x + clear_button_w, clear_button_y + clear_button_h)],
-    fill=clear_button_color,
-    outline="black",
-    width=3
-)
+# 画AP/AP+
+ap = Image.open(base_dir + "assets\\ap.png").convert("RGBA")
+ap_plus = Image.open(base_dir + "assets\\applus.png").convert("RGBA")
+type = ap_plus
+resized_type = type.resize((type.width * 5 // 2, type.height * 5 // 2))
+canvas.paste(resized_type, (600, 400),resized_type)
 
-# 画 "ACHIEVEMENT" 区块
-achievement_x = img_width + 50
-achievement_y = canvas_height // 4
-achievement_w = canvas_width - achievement_x - 30
-achievement_h = img_height // 2
+# 画评级
+sss = Image.open(base_dir + "assets\\sss.png").convert("RGBA")
+sssplus = Image.open(base_dir + "assets\\sssplus.png").convert("RGBA")
+type = sssplus
+resized_type = type.resize((type.width * 3 // 2, type.height * 3 // 2))
+canvas.paste(resized_type, (900, 400),resized_type)
 
-draw.rectangle(
-    [(achievement_x, achievement_y), (achievement_x + achievement_w, achievement_y + achievement_h)],
-    fill=(80, 50, 150),
-    outline="white",
-    width=3
-)
+# 画 DX Star
+dx_rank: Literal[1,2,3,4,5] = 5
+dx_star = Image.open(base_dir + f"assets\\music_icon_dxstar_{dx_rank}.png").convert("RGBA")
+resized_dx_star = dx_star.resize((105, 105))
+canvas.paste(resized_dx_star, (900, 550), resized_dx_star)
 
-# 画分数框
-score_x = achievement_x + 20
-score_y = achievement_y + achievement_h - 80
-score_w = achievement_w - 40
-score_h = 60
-draw.rectangle(
-    [(score_x, score_y), (score_x + score_w, score_y + score_h)],
-    fill=(50, 200, 50),
-    outline="black",
-    width=3
-)
+# 画分数
+score = "100"
+score_font = ImageFont.truetype(base_dir + "assets\\NotoSansCJKBold.otf", 120)
+score_color = (255, 255, 255)
+outline_color = (0, 0, 0)
+offsets = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+score_position = (700, 200)
+for dx, dy in offsets:
+    draw.text((score_position[0] + dx, score_position[1] + dy), score, font=score_font, fill=outline_color)
+draw.text(score_position, score, font=score_font, fill=score_color)
+bbox = score_font.getbbox(score)
+score_width = bbox[2] - bbox[0]
+score_height = bbox[3] - bbox[1]
 
-# 画 "DETAILS" 按钮
-details_x = canvas_width - 180
-details_y = canvas_height - 70
-details_w = 150
-details_h = 50
-draw.rectangle(
-    [(details_x, details_y), (details_x + details_w, details_y + details_h)],
-    fill=(100, 100, 255),
-    outline="black",
-    width=3
-)
+subscore = ".0000%"
+subscore_font = ImageFont.truetype(base_dir + "assets\\NotoSansCJKBold.otf", 80)
+subscore_height = subscore_font.getbbox(subscore)[3] - subscore_font.getbbox(subscore)[1]
+suboffsets = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+subscore_position = (700+score_width, 200+score_height-subscore_height)
+for dx, dy in suboffsets:
+    draw.text((subscore_position[0] + dx, subscore_position[1] + dy), subscore, font=subscore_font, fill=outline_color)
+draw.text(subscore_position, subscore, font=subscore_font, fill=score_color)
 
 # 保存图片
 output_path = base_dir + "output.png"
