@@ -1,5 +1,5 @@
 import sys
-from typing import Literal
+import os
 from PIL import Image, ImageDraw, ImageFont
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QListWidget, QPushButton, QLineEdit, QMessageBox, QLabel, QComboBox
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -26,7 +26,6 @@ class DownloadThread(QThread):
             print(f"下载失败，状态码: {response.status_code}")
 
 class GitHubFileListApp(QWidget):
-    files = []
     name_to_download = {}
     file_name:str = ""
 
@@ -50,7 +49,7 @@ class GitHubFileListApp(QWidget):
         layout.addWidget(self.list_widget)
 
         self.refresh_button = QPushButton("刷新文件列表")
-        self.refresh_button.clicked.connect(self.fetch_bgs)
+        self.refresh_button.clicked.connect(self.list_songs)
         layout.addWidget(self.refresh_button)
 
         self.score_input = QLineEdit(self)
@@ -89,10 +88,14 @@ class GitHubFileListApp(QWidget):
         layout.addWidget(self.submit_button)
 
         self.setLayout(layout)
+        self.list_songs()
 
     def filter_list(self):
         keyword = self.search_box.text().lower()
-        filtered_files = [Path(file["name"]).stem for file in self.files if keyword in Path(file["name"]).stem.lower()]
+        if keyword == "":
+            self.list_songs()
+            return
+        filtered_files = [name for name in self.name_to_download.keys() if keyword in name.lower()]
         self.update_list(filtered_files)
 
     def update_list(self, items):
@@ -100,30 +103,16 @@ class GitHubFileListApp(QWidget):
         for item in items:
             self.list_widget.addItem(item)
 
-    def fetch_bgs(self):
-        url = "https://api.github.com/repos/KirisameVanilla/KirisameVanilla.github.io/contents/maimai/bgs?ref=master"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                self.files = response.json()
-                self.list_widget.clear()
-                for file in self.files:
-                    if "name" in file:
-                        self.list_widget.addItem(Path(file["name"]).stem)
-                        self.name_to_download[Path(file["name"]).stem] = file["download_url"]
-            else:
-                self.list_widget.addItem(f"获取失败: {response.status_code}")
-        except Exception as e:
-            self.list_widget.addItem(f"错误: {e}")
+    def list_songs(self):
+        self.list_widget.clear()
+        songs = os.listdir("bgs")
+        for song in songs:
+            self.list_widget.addItem(Path(song).stem)
+            self.name_to_download[Path(song).stem] = f"bgs/{song}"
 
     def on_item_clicked(self, item):
         """ 点击列表项时触发下载 """
         self.file_name = item.text()
-
-    def on_download_complete(self, file_name, file_path):
-        """ 下载完成后触发 """
-        QMessageBox.information(self, "MaimaiScorePicGenerator", "下载完成！")
-        self.generate_pic(file_name)
 
     def generate_pic(self, song_name: str):
         # 画布尺寸 (16:9)
@@ -213,10 +202,9 @@ class GitHubFileListApp(QWidget):
         canvas.show()
     
     def on_submit(self):
-        # 启动 QThread 下载
-        self.download_thread = DownloadThread(self.file_name, self.name_to_download[self.file_name])
-        self.download_thread.download_complete.connect(self.on_download_complete)
-        self.download_thread.start()
+        if not self.file_name:
+            return
+        self.generate_pic(self.name_to_download[self.file_name])
 
 
 if __name__ == "__main__":
