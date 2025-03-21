@@ -111,7 +111,6 @@ class GitHubFileListApp(QWidget):
             self.name_to_download[Path(song).stem] = f"bgs/{song}"
 
     def on_item_clicked(self, item):
-        """ 点击列表项时触发下载 """
         self.file_name = item.text()
 
     def generate_pic(self, song_name: str):
@@ -126,7 +125,7 @@ class GitHubFileListApp(QWidget):
         draw = ImageDraw.Draw(canvas)
 
         # 加载曲绘并缩放放置在左侧
-        original_img = Image.open("bg.png").convert("RGBA")
+        original_img = Image.open(self.name_to_download[song_name]).convert("RGBA")
         img_width = (int)(1.3 * canvas_width) // 3
         img_height = int(img_width * original_img.height / original_img.width)
         original_img = original_img.resize((img_width, img_height), Image.Resampling.LANCZOS)
@@ -204,7 +203,7 @@ class GitHubFileListApp(QWidget):
     def on_submit(self):
         if not self.file_name:
             return
-        self.generate_pic(self.name_to_download[self.file_name])
+        self.generate_pic(self.file_name)
 
 
 if __name__ == "__main__":
