@@ -54,32 +54,32 @@ class GitHubFileListApp(QWidget):
 
         self.score_input = QLineEdit(self)
         self.score_input.setPlaceholderText("请输入成绩 (例如 100.1)")
-        layout.addWidget(QLabel("Score"))
+        layout.addWidget(QLabel("达成率"))
         layout.addWidget(self.score_input)
 
         self.dx_rank_combo = QComboBox(self)
         self.dx_rank_combo.addItems(["1", "2", "3", "4", "5"])
-        layout.addWidget(QLabel("DX Rank"))
+        layout.addWidget(QLabel("DX 分数等级"))
         layout.addWidget(self.dx_rank_combo)
 
         self.difficulty_combo = QComboBox(self)
         self.difficulty_combo.addItems(["master", "remaster", "expert"])
-        layout.addWidget(QLabel("Difficulty"))
+        layout.addWidget(QLabel("难度"))
         layout.addWidget(self.difficulty_combo)
 
         self.song_type_combo = QComboBox(self)
         self.song_type_combo.addItems(["dx", "standard"])
-        layout.addWidget(QLabel("Song Type"))
+        layout.addWidget(QLabel("谱面类型"))
         layout.addWidget(self.song_type_combo)
 
         self.finish_rank_combo = QComboBox(self)
         self.finish_rank_combo.addItems(["ap", "applus"])
-        layout.addWidget(QLabel("Finish Rank"))
+        layout.addWidget(QLabel("AP/AP+"))
         layout.addWidget(self.finish_rank_combo)
 
         self.rank_combo = QComboBox(self)
         self.rank_combo.addItems(["sss", "sssplus"])
-        layout.addWidget(QLabel("Rank"))
+        layout.addWidget(QLabel("评级"))
         layout.addWidget(self.rank_combo)
 
          # 提交按钮
