@@ -34,7 +34,7 @@ class GitHubFileListApp(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("GitHub 文件列表")
+        self.setWindowTitle("舞萌DX成绩图生成器")
         self.setGeometry(100, 100, 400, 300)
 
         layout = QVBoxLayout()
@@ -53,7 +53,7 @@ class GitHubFileListApp(QWidget):
         layout.addWidget(self.refresh_button)
 
         self.score_input = QLineEdit(self)
-        self.score_input.setPlaceholderText("请输入成绩（例如 100.1）")
+        self.score_input.setPlaceholderText("请输入成绩 (例如 100.1)")
         layout.addWidget(QLabel("Score"))
         layout.addWidget(self.score_input)
 
