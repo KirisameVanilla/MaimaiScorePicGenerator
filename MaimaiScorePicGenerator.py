@@ -2,9 +2,11 @@ import sys
 import os
 from PIL import Image, ImageDraw, ImageFont
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QListWidget, QPushButton, QLineEdit, QMessageBox, QLabel, QComboBox, QHBoxLayout
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QThread, pyqtSignal
 from pathlib import Path
 import requests
+import random
 
 class DownloadThread(QThread):
     download_complete: pyqtSignal = pyqtSignal(str, str)  # 发送 (file_name, 保存的文件路径)
@@ -27,7 +29,7 @@ class DownloadThread(QThread):
         else:
             print(f"下载失败，状态码: {response.status_code}")
 
-class GitHubFileListApp(QWidget):
+class MaimaiScorePicGeneratorApp(QWidget):
     name_to_download: dict[str, str] = {}
     file_name: str = ""
 
@@ -37,8 +39,7 @@ class GitHubFileListApp(QWidget):
 
     def init_ui(self):
         self.setWindowTitle("舞萌DX成绩图生成器")
-        self.setGeometry(100, 100, 600, 300)  # 调整窗口宽度以适应新布局
-
+        self.setGeometry(100, 100, 600, 300)
         main_layout = QHBoxLayout()  # 主水平布局
 
         # 右侧搜索框 + 列表 + 刷新按钮的布局
@@ -99,6 +100,7 @@ class GitHubFileListApp(QWidget):
 
         self.setLayout(main_layout)
         self.list_songs()
+        self.set_random_icon()
 
     def filter_list(self):
         keyword: str = self.search_box.text().lower()
@@ -215,10 +217,14 @@ class GitHubFileListApp(QWidget):
         if not self.file_name:
             return
         self.generate_pic(self.file_name)
+    
+    def set_random_icon(self):
+        files = [f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))]
+        self.setWindowIcon(QIcon(f"bgs/{random.choice(files)}"))
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = GitHubFileListApp()
+    window = MaimaiScorePicGeneratorApp()
     window.show()
     sys.exit(app.exec())
