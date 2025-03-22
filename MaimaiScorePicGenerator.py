@@ -153,7 +153,6 @@ class MaimaiScorePicGeneratorApp(QWidget):
         diff: Image.Image = Image.open(f"assets\\diff_{self.difficulty_combo.currentText()}.png").convert("RGBA")
         resized_diff: Image.Image = diff.resize((diff.width * 5 // 2, diff.height * 5 // 2))
         canvas.paste(resized_diff, (30, 30),resized_diff)
-        print(resized_diff.width, resized_diff.height)
 
         # 写歌名
         song_name_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\SourceHanSans-Bold.otf", 50)
