@@ -185,24 +185,16 @@ class MaimaiScorePicGeneratorApp(QWidget):
         int_part = str(int(score_float))
         decimal_part: str = f"{score_float - int(score_float):.4f}"[1:] + "%"
         score_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\NotoSansCJKBold.otf", 120)
-        score_color: tuple[int, ...] = (255, 255, 255)
-        outline_color: tuple[int, ...] = (0, 0, 0)
-        offsets: list[tuple[int, int]] = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
         score_position: tuple[int, ...] = (700, 200)
-        for dx, dy in offsets:
-            draw.text((score_position[0] + dx, score_position[1] + dy), int_part, font=score_font, fill=outline_color)
-        draw.text(score_position, int_part, font=score_font, fill=score_color)
+        self.draw_text_with_outline(draw, score_position, int_part, score_font)
         bbox = score_font.getbbox(int_part)
         score_width: float = bbox[2] - bbox[0]
         score_height: float = bbox[3] - bbox[1]
 
         subscore_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\NotoSansCJKBold.otf", 80)
         subscore_height: float = subscore_font.getbbox(decimal_part)[3] - subscore_font.getbbox(decimal_part)[1]
-        suboffsets: list[tuple[int, int]] = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
         subscore_position: tuple[float, float] = (700+score_width, 200+score_height-subscore_height)
-        for dx, dy in suboffsets:
-            draw.text((subscore_position[0] + dx, subscore_position[1] + dy), decimal_part, font=subscore_font, fill=outline_color)
-        draw.text(subscore_position, decimal_part, font=subscore_font, fill=score_color)
+        self.draw_text_with_outline(draw, subscore_position, decimal_part, subscore_font)
 
         # 保存图片
         output_path = "output.png"
@@ -220,6 +212,18 @@ class MaimaiScorePicGeneratorApp(QWidget):
     def set_random_icon(self):
         files = [f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))]
         self.setWindowIcon(QIcon(f"bgs/{random.choice(files)}"))
+    
+    def draw_text_with_outline(self, 
+                               draw: ImageDraw.ImageDraw, 
+                               position: tuple[float, float], 
+                               text: str, 
+                               font: ImageFont.FreeTypeFont, 
+                               text_color: tuple[int, int, int] = (255, 255, 255), 
+                               outline_color: tuple[int, int, int] = (0, 0, 0), 
+                               offsets: list[tuple[int, int]] = [(-2, -2), (-2, 2), (2, -2), (2, 2)]):
+        for dx, dy in offsets:
+            draw.text((position[0] + dx, position[1] + dy), text, font=font, fill=outline_color)
+        draw.text(position, text, font=font, fill=text_color)
 
 
 if __name__ == "__main__":
