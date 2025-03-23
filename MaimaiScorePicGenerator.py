@@ -1,16 +1,30 @@
-from codecs import strict_errors
 import sys
 import os
 from PIL import Image, ImageDraw, ImageFont
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QListWidget, QPushButton, QLineEdit, QMessageBox, QLabel, QComboBox, QHBoxLayout, QCheckBox
+from PyQt6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QListWidget,
+    QPushButton,
+    QLineEdit,
+    QMessageBox,
+    QLabel,
+    QComboBox,
+    QHBoxLayout,
+    QCheckBox,
+)
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QThread, pyqtSignal
 from pathlib import Path
 import requests
 import random
 
+
 class DownloadThread(QThread):
-    download_complete: pyqtSignal = pyqtSignal(str, str)  # 发送 (file_name, 保存的文件路径)
+    download_complete: pyqtSignal = pyqtSignal(
+        str, str
+    )  # 发送 (file_name, 保存的文件路径)
     file_name: str
     url: str
 
@@ -20,7 +34,7 @@ class DownloadThread(QThread):
         self.url = url
 
     def run(self):
-        """ 线程任务：下载文件 """
+        """线程任务：下载文件"""
         response: requests.Response = requests.get(self.url)
         if response.status_code == 200:
             save_path = "bg.png"
@@ -30,11 +44,13 @@ class DownloadThread(QThread):
         else:
             print(f"下载失败，状态码: {response.status_code}")
 
+
 class MaimaiScorePicGeneratorApp(QWidget):
     name_to_download: dict[str, str] = {}
     file_name: str = ""
     show_first: bool = False
     show_second: bool = False
+    score: float = 0.0
 
     def __init__(self):
         super().__init__()
@@ -74,7 +90,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         left_layout.addWidget(self.dx_rank_combo)
 
         self.difficulty_combo = QComboBox(self)
-        self.difficulty_combo.addItems(["master", "remaster", "expert"])
+        self.difficulty_combo.addItems(["master", "remaster", "expert", "utage"])
         left_layout.addWidget(QLabel("难度"))
         left_layout.addWidget(self.difficulty_combo)
 
@@ -119,7 +135,9 @@ class MaimaiScorePicGeneratorApp(QWidget):
         if keyword == "":
             self.list_songs()
             return
-        filtered_files: list[str] = [name for name in self.name_to_download.keys() if keyword in name.lower()]
+        filtered_files: list[str] = [
+            name for name in self.name_to_download.keys() if keyword in name.lower()
+        ]
         self.update_list(filtered_files)
 
     def update_list(self, items):
@@ -145,85 +163,182 @@ class MaimaiScorePicGeneratorApp(QWidget):
         background_color: tuple[int, ...] = (130, 100, 200, 255)
 
         # 创建画布
-        canvas: Image.Image = Image.new("RGBA", (canvas_width, canvas_height), background_color)
+        canvas: Image.Image = Image.new(
+            "RGBA", (canvas_width, canvas_height), background_color
+        )
         canvas43: Image.Image = Image.new("RGBA", (canvas_width, 960), background_color)
         draw: ImageDraw.ImageDraw = ImageDraw.Draw(canvas)
 
         # 加载曲绘并缩放放置在左侧
-        original_img: Image.Image = Image.open(self.name_to_download[song_name]).convert("RGBA")
+        original_img: Image.Image = Image.open(
+            self.name_to_download[song_name]
+        ).convert("RGBA")
         img_width: int = (int)(1.3 * canvas_width) // 3
         img_height = int(img_width * original_img.height / original_img.width)
-        original_img = original_img.resize((img_width, img_height), Image.Resampling.LANCZOS)
+        original_img = original_img.resize(
+            (img_width, img_height), Image.Resampling.LANCZOS
+        )
         canvas.paste(original_img, (30, canvas_height // 5))
 
         # 画标题栏
         title_bar_color: tuple[int, ...] = (255, 255, 255)
         title_bar_height = 100
-        draw.rounded_rectangle([(20, 20), (canvas_width - 20, 20 + title_bar_height)], fill=title_bar_color, radius=10)
+        draw.rounded_rectangle(
+            [(20, 20), (canvas_width - 20, 20 + title_bar_height)],
+            fill=title_bar_color,
+            radius=10,
+        )
 
         # 画难度
-        diff: Image.Image = Image.open(f"assets\\diff_{self.difficulty_combo.currentText()}.png").convert("RGBA")
-        resized_diff: Image.Image = diff.resize((diff.width * 5 // 2, diff.height * 5 // 2))
-        canvas.paste(resized_diff, (30, 30),resized_diff)
+        diff: Image.Image = Image.open(
+            f"assets\\diff_{self.difficulty_combo.currentText()}.png"
+        ).convert("RGBA")
+        resized_diff: Image.Image = diff.resize(
+            (diff.width * 5 // 2, diff.height * 5 // 2)
+        )
+        canvas.paste(resized_diff, (30, 30), resized_diff)
 
         # 写歌名
-        song_name_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\SourceHanSans-Bold.otf", 50)
+        song_name_font: ImageFont.FreeTypeFont = ImageFont.truetype(
+            "assets\\SourceHanSans-Bold.otf", 50
+        )
         song_name_color: tuple[int, ...] = (0, 0, 0)
         song_name_position: tuple[int, ...] = (440, 35)
-        draw.text(song_name_position, song_name, font=song_name_font, fill=song_name_color)
+        draw.text(
+            song_name_position, song_name, font=song_name_font, fill=song_name_color
+        )
 
         # 画DX/标准
-        type: Image.Image = Image.open(f"assets\\music_{self.song_type_combo.currentText()}.png").convert("RGBA")
-        resized_type: Image.Image = type.resize((type.width * 3 // 2, type.height * 3 // 2))
-        canvas.paste(resized_type, (10, 130),resized_type)
+        type: Image.Image = Image.open(
+            f"assets\\music_{self.song_type_combo.currentText()}.png"
+        ).convert("RGBA")
+        resized_type: Image.Image = type.resize(
+            (type.width * 3 // 2, type.height * 3 // 2)
+        )
+        canvas.paste(resized_type, (10, 130), resized_type)
 
         # 画Play Log
-        
+
         if self.show_first and not self.show_second:
-            play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
-            scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
-            canvas.paste(scaled_play_log_image_first, (600, 400),scaled_play_log_image_first)
+            play_log_image_first: Image.Image = Image.open(
+                f"assets\\{self.play_log_combo_first.currentText()}.png"
+            ).convert("RGBA")
+            scaled_play_log_image_first = play_log_image_first.resize(
+                (
+                    play_log_image_first.width * 5 // 2,
+                    play_log_image_first.height * 5 // 2,
+                )
+            )
+            canvas.paste(
+                scaled_play_log_image_first, (600, 400), scaled_play_log_image_first
+            )
         if self.show_second and not self.show_first:
-            play_log_image_second: Image.Image = Image.open(f"assets\\{self.play_log_combo_second.currentText()}.png").convert("RGBA")
-            scaled_play_log_image_second = play_log_image_second.resize((play_log_image_second.width * 5 // 2, play_log_image_second.height * 5 // 2))
-            canvas.paste(scaled_play_log_image_second, (600, 400),scaled_play_log_image_second)
+            play_log_image_second: Image.Image = Image.open(
+                f"assets\\{self.play_log_combo_second.currentText()}.png"
+            ).convert("RGBA")
+            scaled_play_log_image_second = play_log_image_second.resize(
+                (
+                    play_log_image_second.width * 5 // 2,
+                    play_log_image_second.height * 5 // 2,
+                )
+            )
+            canvas.paste(
+                scaled_play_log_image_second, (600, 400), scaled_play_log_image_second
+            )
         if self.show_first and self.show_second:
-            play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
-            scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
-            play_log_image_second: Image.Image = Image.open(f"assets\\{self.play_log_combo_second.currentText()}.png").convert("RGBA")
-            scaled_play_log_image_second = play_log_image_second.resize((play_log_image_second.width * 5 // 2, play_log_image_second.height * 5 // 2))
-            canvas.paste(scaled_play_log_image_first, (600, 350),scaled_play_log_image_first)
-            canvas.paste(scaled_play_log_image_second, (600, 500),scaled_play_log_image_second)
-
-
-                
+            play_log_image_first: Image.Image = Image.open(
+                f"assets\\{self.play_log_combo_first.currentText()}.png"
+            ).convert("RGBA")
+            scaled_play_log_image_first = play_log_image_first.resize(
+                (
+                    play_log_image_first.width * 5 // 2,
+                    play_log_image_first.height * 5 // 2,
+                )
+            )
+            play_log_image_second: Image.Image = Image.open(
+                f"assets\\{self.play_log_combo_second.currentText()}.png"
+            ).convert("RGBA")
+            scaled_play_log_image_second = play_log_image_second.resize(
+                (
+                    play_log_image_second.width * 5 // 2,
+                    play_log_image_second.height * 5 // 2,
+                )
+            )
+            canvas.paste(
+                scaled_play_log_image_first, (600, 350), scaled_play_log_image_first
+            )
+            canvas.paste(
+                scaled_play_log_image_second, (600, 500), scaled_play_log_image_second
+            )
 
         # 画 DX Star
-        dx_star: Image.Image = Image.open(f"assets\\music_icon_dxstar_{self.dx_rank_combo.currentText()}.png").convert("RGBA")
+        dx_star: Image.Image = Image.open(
+            f"assets\\music_icon_dxstar_{self.dx_rank_combo.currentText()}.png"
+        ).convert("RGBA")
         resized_dx_star: Image.Image = dx_star.resize((105, 105))
         canvas.paste(resized_dx_star, (600, 150), resized_dx_star)
 
         # 画分数
         int_part = str(int(self.score))
         decimal_part: str = f"{self.score - int(self.score):.4f}"[1:] + "%"
-        score_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\NotoSansCJKBold.otf", 120)
-        subscore_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\NotoSansCJKBold.otf", 80)
+        score_font: ImageFont.FreeTypeFont = ImageFont.truetype(
+            "assets\\NotoSansCJKBold.otf", 120
+        )
+        subscore_font: ImageFont.FreeTypeFont = ImageFont.truetype(
+            "assets\\NotoSansCJKBold.otf", 80
+        )
 
         score_position: tuple[int, ...] = (700, 200)
         int_part_bbox = score_font.getbbox(int_part)
         score_width: float = int_part_bbox[2] - int_part_bbox[0]
         score_height: float = int_part_bbox[3] - int_part_bbox[1]
-        subscore_height: float = subscore_font.getbbox(decimal_part)[3] - subscore_font.getbbox(decimal_part)[1]
-        subscore_position: tuple[float, float] = (700 + score_width, 200 + score_height-subscore_height)
+        subscore_height: float = (
+            subscore_font.getbbox(decimal_part)[3]
+            - subscore_font.getbbox(decimal_part)[1]
+        )
+        subscore_position: tuple[float, float] = (
+            700 + score_width,
+            200 + score_height - subscore_height,
+        )
 
         self.draw_text_with_outline(draw, score_position, int_part, score_font)
-        self.draw_text_with_outline(draw, subscore_position, decimal_part, subscore_font)
+        self.draw_text_with_outline(
+            draw, subscore_position, decimal_part, subscore_font
+        )
 
         # 画评级
-        rank = "sssplus" if self.score >= 100.5 else "sss" if self.score >= 100 else "ssplus" if self.score >= 99.5 else "ss" if self.score >= 99 else "splus" if self.score >= 98 else "s" if self.score >= 97 else "aaa" if self.score >= 94 else "aa" if self.score >= 90 else "a" if self.score >= 80 else "bbb" if self.score >= 75 else "bb" if self.score >= 70 else "b" if self.score >= 60 else "c" if self.score >= 50 else "d"
+        rank = (
+            "sssplus"
+            if self.score >= 100.5
+            else "sss"
+            if self.score >= 100
+            else "ssplus"
+            if self.score >= 99.5
+            else "ss"
+            if self.score >= 99
+            else "splus"
+            if self.score >= 98
+            else "s"
+            if self.score >= 97
+            else "aaa"
+            if self.score >= 94
+            else "aa"
+            if self.score >= 90
+            else "a"
+            if self.score >= 80
+            else "bbb"
+            if self.score >= 75
+            else "bb"
+            if self.score >= 70
+            else "b"
+            if self.score >= 60
+            else "c"
+            if self.score >= 50
+            else "d"
+        )
         ranking: Image.Image = Image.open(f"assets\\{rank}.png").convert("RGBA")
         resized_type = ranking.resize((ranking.width * 3 // 2, ranking.height * 3 // 2))
-        canvas.paste(resized_type, (900, 400),resized_type)
+        canvas.paste(resized_type, (900, 400), resized_type)
 
         # 保存图片
         output_path = "output.png"
@@ -232,7 +347,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         canvas.save(output_path)
         canvas43.save(output_path43)
         canvas.show()
-    
+
     def on_submit(self):
         if not self.file_name:
             return
@@ -242,7 +357,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         self.score = float(score)
         if self.score == 101.0:
             self.play_log_combo_first.setCurrentText("applus")
-    
+
     def on_check_box_first_change(self, state: bool):
         self.show_first = state
         if state:
@@ -256,21 +371,30 @@ class MaimaiScorePicGeneratorApp(QWidget):
             self.play_log_combo_second.show()
         else:
             self.play_log_combo_second.hide()
-    
+
     def set_random_icon(self):
-        files = [f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))]
+        files = [
+            f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))
+        ]
         self.setWindowIcon(QIcon(f"bgs/{random.choice(files)}"))
-    
-    def draw_text_with_outline(self, 
-                               draw: ImageDraw.ImageDraw, 
-                               position: tuple[float, float], 
-                               text: str, 
-                               font: ImageFont.FreeTypeFont, 
-                               text_color: tuple[int, int, int] = (255, 255, 255), 
-                               outline_color: tuple[int, int, int] = (0, 0, 0), 
-                               offsets: list[tuple[int, int]] = [(-2, -2), (-2, 2), (2, -2), (2, 2)]):
+
+    def draw_text_with_outline(
+        self,
+        draw: ImageDraw.ImageDraw,
+        position: tuple[float, float],
+        text: str,
+        font: ImageFont.FreeTypeFont,
+        text_color: tuple[int, int, int] = (255, 255, 255),
+        outline_color: tuple[int, int, int] = (0, 0, 0),
+        offsets: list[tuple[int, int]] = [(-2, -2), (-2, 2), (2, -2), (2, 2)],
+    ):
         for dx, dy in offsets:
-            draw.text((position[0] + dx, position[1] + dy), text, font=font, fill=outline_color)
+            draw.text(
+                (position[0] + dx, position[1] + dy),
+                text,
+                font=font,
+                fill=outline_color,
+            )
         draw.text(position, text, font=font, fill=text_color)
 
 
