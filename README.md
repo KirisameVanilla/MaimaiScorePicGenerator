@@ -4,11 +4,11 @@
 - 手元视频封面
 
 ## 最新更新
-version 25.3.23.2: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.23.2/MaimaiScorePicGenerator.exe), [assets.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.23.2/assets.zip)
+version 25.3.24.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.24.1/MaimaiScorePicGenerator.exe), [assets.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.24.1/assets.zip)
 
 ## 使用方法
 - 前往 [RELEASE](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases) 页面, 或者直接点击下方蓝链
-- 根据版本顺序, 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.23.2/MaimaiScorePicGenerator.exe), [assets.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.23.2/assets.zip), [bgs.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.21.2/bgs.zip)
+- 根据版本顺序, 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.24.1/MaimaiScorePicGenerator.exe), [assets.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.24.1/assets.zip), [bgs.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.21.2/bgs.zip)
 - 将两个zip解压
 - 将exe文件和两个zip解压后的结果放在同个目录下, 文件夹结构如下
   ```
@@ -23,7 +23,21 @@ version 25.3.23.2: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVani
         |- ap.png
         |- Others
   ```
-- 运行 *MaimaiScorePicGenerator.exe*
+
+### GUI
+
+运行 *MaimaiScorePicGenerator.exe*
+
+### 命令行
+
+*注意: 带特殊符号的参数可能无法正确处理, 如"411Ψ892", 您需要在bgs文件夹中手动删除掉引号, 将其变成411Ψ892*
+
+```
+.\MaimaiScorePicGenerator.exe --song "曲名(不带后缀)" --score 100.5 --difficulty master --dx-rank 5 --song-type dx --show-first --first-log applus
+```
+
+--show-first 和 --first-log, --show-second 和 --second-log 必须同时出现
+
 
 ## 图例
 ### 16:9比例
