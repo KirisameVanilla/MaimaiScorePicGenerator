@@ -178,15 +178,15 @@ class MaimaiScorePicGeneratorApp(QWidget):
         canvas.paste(resized_type, (10, 130),resized_type)
 
         # 画Play Log
-        if int(self.show_first) + int(self.show_second) == 1:
-            if self.show_first:
-                play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
-                scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
-                canvas.paste(scaled_play_log_image_first, (600, 400),scaled_play_log_image_first)
-            if self.show_second:
-                play_log_image_second: Image.Image = Image.open(f"assets\\{self.play_log_combo_second.currentText()}.png").convert("RGBA")
-                scaled_play_log_image_second = play_log_image_second.resize((play_log_image_second.width * 5 // 2, play_log_image_second.height * 5 // 2))
-                canvas.paste(scaled_play_log_image_second, (600, 400),scaled_play_log_image_second)
+        
+        if self.show_first and not self.show_second:
+            play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
+            scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
+            canvas.paste(scaled_play_log_image_first, (600, 400),scaled_play_log_image_first)
+        if self.show_second and not self.show_first:
+            play_log_image_second: Image.Image = Image.open(f"assets\\{self.play_log_combo_second.currentText()}.png").convert("RGBA")
+            scaled_play_log_image_second = play_log_image_second.resize((play_log_image_second.width * 5 // 2, play_log_image_second.height * 5 // 2))
+            canvas.paste(scaled_play_log_image_second, (600, 400),scaled_play_log_image_second)
         if self.show_first and self.show_second:
             play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
             scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
