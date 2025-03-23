@@ -1,3 +1,4 @@
+from codecs import strict_errors
 import sys
 import os
 from PIL import Image, ImageDraw, ImageFont
@@ -63,6 +64,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         self.score_input.setPlaceholderText("请输入成绩 (例如 100.1)")
         left_layout.addWidget(QLabel("达成率"))
         left_layout.addWidget(self.score_input)
+        self.score_input.textChanged.connect(self.on_score_change)
 
         self.dx_rank_combo = QComboBox(self)
         self.dx_rank_combo.addItems(["1", "2", "3", "4", "5"])
@@ -79,15 +81,10 @@ class MaimaiScorePicGeneratorApp(QWidget):
         left_layout.addWidget(QLabel("谱面类型"))
         left_layout.addWidget(self.song_type_combo)
 
-        self.finish_rank_combo = QComboBox(self)
-        self.finish_rank_combo.addItems(["ap", "applus"])
-        left_layout.addWidget(QLabel("AP/AP+"))
-        left_layout.addWidget(self.finish_rank_combo)
-
-        self.rank_combo = QComboBox(self)
-        self.rank_combo.addItems(["sss", "sssplus"])
-        left_layout.addWidget(QLabel("评级"))
-        left_layout.addWidget(self.rank_combo)
+        self.play_log_combo = QComboBox(self)
+        self.play_log_combo.addItems(["applus", "ap", "fcplus", "fc"])
+        left_layout.addWidget(QLabel("Play Log"))
+        left_layout.addWidget(self.play_log_combo)
 
         # 提交按钮
         self.submit_button = QPushButton("提交", self)
@@ -130,7 +127,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         # 画布尺寸 (16:9)
         canvas_width = 1280
         canvas_height = 720
-        background_color: tuple[int, ...] = (130, 100, 200, 255)  # 类似原图的紫色
+        background_color: tuple[int, ...] = (130, 100, 200, 255)
 
         # 创建画布
         canvas: Image.Image = Image.new("RGBA", (canvas_width, canvas_height), background_color)
@@ -142,7 +139,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         img_width: int = (int)(1.3 * canvas_width) // 3
         img_height = int(img_width * original_img.height / original_img.width)
         original_img = original_img.resize((img_width, img_height), Image.Resampling.LANCZOS)
-        canvas.paste(original_img, (30, canvas_height // 5))  # 左侧对齐
+        canvas.paste(original_img, (30, canvas_height // 5))
 
         # 画标题栏
         title_bar_color: tuple[int, ...] = (255, 255, 255)
@@ -165,15 +162,10 @@ class MaimaiScorePicGeneratorApp(QWidget):
         resized_type: Image.Image = type.resize((type.width * 3 // 2, type.height * 3 // 2))
         canvas.paste(resized_type, (10, 130),resized_type)
 
-        # 画AP/AP+
-        finish_rank_image: Image.Image = Image.open(f"assets\\{self.finish_rank_combo.currentText()}.png").convert("RGBA")
-        resized_type = finish_rank_image.resize((finish_rank_image.width * 5 // 2, finish_rank_image.height * 5 // 2))
-        canvas.paste(resized_type, (600, 400),resized_type)
-
-        # 画评级
-        ranking: Image.Image = Image.open(f"assets\\{self.rank_combo.currentText()}.png").convert("RGBA")
-        resized_type = ranking.resize((ranking.width * 3 // 2, ranking.height * 3 // 2))
-        canvas.paste(resized_type, (900, 400),resized_type)
+        # 画Play Log
+        play_log_image: Image.Image = Image.open(f"assets\\{self.play_log_combo.currentText()}.png").convert("RGBA")
+        resized_play_log_image = play_log_image.resize((play_log_image.width * 5 // 2, play_log_image.height * 5 // 2))
+        canvas.paste(resized_play_log_image, (600, 400),resized_play_log_image)
 
         # 画 DX Star
         dx_star: Image.Image = Image.open(f"assets\\music_icon_dxstar_{self.dx_rank_combo.currentText()}.png").convert("RGBA")
@@ -181,20 +173,26 @@ class MaimaiScorePicGeneratorApp(QWidget):
         canvas.paste(resized_dx_star, (600, 150), resized_dx_star)
 
         # 画分数
-        score_float = float(self.score_input.text())
-        int_part = str(int(score_float))
-        decimal_part: str = f"{score_float - int(score_float):.4f}"[1:] + "%"
+        int_part = str(int(self.score))
+        decimal_part: str = f"{self.score - int(self.score):.4f}"[1:] + "%"
         score_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\NotoSansCJKBold.otf", 120)
-        score_position: tuple[int, ...] = (700, 200)
-        self.draw_text_with_outline(draw, score_position, int_part, score_font)
-        bbox = score_font.getbbox(int_part)
-        score_width: float = bbox[2] - bbox[0]
-        score_height: float = bbox[3] - bbox[1]
-
         subscore_font: ImageFont.FreeTypeFont = ImageFont.truetype("assets\\NotoSansCJKBold.otf", 80)
+
+        score_position: tuple[int, ...] = (700, 200)
+        int_part_bbox = score_font.getbbox(int_part)
+        score_width: float = int_part_bbox[2] - int_part_bbox[0]
+        score_height: float = int_part_bbox[3] - int_part_bbox[1]
         subscore_height: float = subscore_font.getbbox(decimal_part)[3] - subscore_font.getbbox(decimal_part)[1]
-        subscore_position: tuple[float, float] = (700+score_width, 200+score_height-subscore_height)
+        subscore_position: tuple[float, float] = (700 + score_width, 200 + score_height-subscore_height)
+
+        self.draw_text_with_outline(draw, score_position, int_part, score_font)
         self.draw_text_with_outline(draw, subscore_position, decimal_part, subscore_font)
+
+        # 画评级
+        rank = "sssplus" if self.score >= 100.5 else "sss" if self.score >= 100 else "ssplus" if self.score >= 99.5 else "ss" if self.score >= 99 else "splus" if self.score >= 98 else "s" if self.score >= 97 else "aaa" if self.score >= 94 else "aa" if self.score >= 90 else "a" if self.score >= 80 else "bbb" if self.score >= 75 else "bb" if self.score >= 70 else "b" if self.score >= 60 else "c" if self.score >= 50 else "d"
+        ranking: Image.Image = Image.open(f"assets\\{rank}.png").convert("RGBA")
+        resized_type = ranking.resize((ranking.width * 3 // 2, ranking.height * 3 // 2))
+        canvas.paste(resized_type, (900, 400),resized_type)
 
         # 保存图片
         output_path = "output.png"
@@ -208,6 +206,11 @@ class MaimaiScorePicGeneratorApp(QWidget):
         if not self.file_name:
             return
         self.generate_pic(self.file_name)
+
+    def on_score_change(self, score: str):
+        self.score = float(score)
+        if self.score == 101.0:
+            self.play_log_combo.setCurrentText("applus")
     
     def set_random_icon(self):
         files = [f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))]
