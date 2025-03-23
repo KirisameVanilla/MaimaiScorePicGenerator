@@ -2,7 +2,7 @@ from codecs import strict_errors
 import sys
 import os
 from PIL import Image, ImageDraw, ImageFont
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QListWidget, QPushButton, QLineEdit, QMessageBox, QLabel, QComboBox, QHBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QListWidget, QPushButton, QLineEdit, QMessageBox, QLabel, QComboBox, QHBoxLayout, QCheckBox
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QThread, pyqtSignal
 from pathlib import Path
@@ -33,6 +33,8 @@ class DownloadThread(QThread):
 class MaimaiScorePicGeneratorApp(QWidget):
     name_to_download: dict[str, str] = {}
     file_name: str = ""
+    show_first: bool = False
+    show_second: bool = False
 
     def __init__(self):
         super().__init__()
@@ -81,10 +83,23 @@ class MaimaiScorePicGeneratorApp(QWidget):
         left_layout.addWidget(QLabel("谱面类型"))
         left_layout.addWidget(self.song_type_combo)
 
-        self.play_log_combo = QComboBox(self)
-        self.play_log_combo.addItems(["applus", "ap", "fcplus", "fc"])
+        self.play_log_check_first = QCheckBox("显示完成标", self)
+        self.play_log_check_second = QCheckBox("显示Sync标", self)
+        self.play_log_combo_first = QComboBox(self)
+        self.play_log_combo_first.addItems(["applus", "ap", "fcplus", "fc"])
+        self.play_log_combo_first.hide()
+        self.play_log_combo_second = QComboBox(self)
+        self.play_log_combo_second.addItems(["fdxplus", "fdx", "fsplus", "fs", "sync"])
+        self.play_log_combo_second.hide()
         left_layout.addWidget(QLabel("Play Log"))
-        left_layout.addWidget(self.play_log_combo)
+        left_layout.addWidget(self.play_log_check_first)
+        left_layout.addWidget(self.play_log_combo_first)
+        left_layout.addWidget(self.play_log_check_second)
+        left_layout.addWidget(self.play_log_combo_second)
+        self.play_log_check_first.stateChanged.connect(self.on_check_box_first_change)
+        self.play_log_check_second.stateChanged.connect(self.on_check_box_second_change)
+        self.play_log_check_first.setChecked(True)
+        self.play_log_check_second.setChecked(True)
 
         # 提交按钮
         self.submit_button = QPushButton("提交", self)
@@ -163,9 +178,25 @@ class MaimaiScorePicGeneratorApp(QWidget):
         canvas.paste(resized_type, (10, 130),resized_type)
 
         # 画Play Log
-        play_log_image: Image.Image = Image.open(f"assets\\{self.play_log_combo.currentText()}.png").convert("RGBA")
-        resized_play_log_image = play_log_image.resize((play_log_image.width * 5 // 2, play_log_image.height * 5 // 2))
-        canvas.paste(resized_play_log_image, (600, 400),resized_play_log_image)
+        if int(self.show_first) + int(self.show_second) == 1:
+            if self.show_first:
+                play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
+                scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
+                canvas.paste(scaled_play_log_image_first, (600, 400),scaled_play_log_image_first)
+            if self.show_second:
+                play_log_image_second: Image.Image = Image.open(f"assets\\{self.play_log_combo_second.currentText()}.png").convert("RGBA")
+                scaled_play_log_image_second = play_log_image_second.resize((play_log_image_second.width * 5 // 2, play_log_image_second.height * 5 // 2))
+                canvas.paste(scaled_play_log_image_second, (600, 400),scaled_play_log_image_second)
+        if self.show_first and self.show_second:
+            play_log_image_first: Image.Image = Image.open(f"assets\\{self.play_log_combo_first.currentText()}.png").convert("RGBA")
+            scaled_play_log_image_first = play_log_image_first.resize((play_log_image_first.width * 5 // 2, play_log_image_first.height * 5 // 2))
+            play_log_image_second: Image.Image = Image.open(f"assets\\{self.play_log_combo_second.currentText()}.png").convert("RGBA")
+            scaled_play_log_image_second = play_log_image_second.resize((play_log_image_second.width * 5 // 2, play_log_image_second.height * 5 // 2))
+            canvas.paste(scaled_play_log_image_first, (600, 350),scaled_play_log_image_first)
+            canvas.paste(scaled_play_log_image_second, (600, 500),scaled_play_log_image_second)
+
+
+                
 
         # 画 DX Star
         dx_star: Image.Image = Image.open(f"assets\\music_icon_dxstar_{self.dx_rank_combo.currentText()}.png").convert("RGBA")
@@ -210,7 +241,21 @@ class MaimaiScorePicGeneratorApp(QWidget):
     def on_score_change(self, score: str):
         self.score = float(score)
         if self.score == 101.0:
-            self.play_log_combo.setCurrentText("applus")
+            self.play_log_combo_first.setCurrentText("applus")
+    
+    def on_check_box_first_change(self, state: bool):
+        self.show_first = state
+        if state:
+            self.play_log_combo_first.show()
+        else:
+            self.play_log_combo_first.hide()
+
+    def on_check_box_second_change(self, state: bool):
+        self.show_second = state
+        if state:
+            self.play_log_combo_second.show()
+        else:
+            self.play_log_combo_second.hide()
     
     def set_random_icon(self):
         files = [f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))]
