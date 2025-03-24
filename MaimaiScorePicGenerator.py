@@ -1,5 +1,6 @@
 import sys
 import os
+from typing import Literal
 from PIL import Image, ImageDraw, ImageFont
 from PyQt6.QtWidgets import (
     QApplication,
@@ -242,13 +243,13 @@ class MaimaiScorePicGeneratorApp(QWidget):
 def generate_score_image(
     song_name: str,
     score: float,
-    difficulty: str,
-    dx_rank: str,
-    song_type: str,
+    difficulty: Literal["master", "remaster", "expert", "utage"] | str,
+    dx_rank: Literal["1", "2", "3", "4", "5"] | str,
+    song_type: Literal["dx", "standard"] | str,
     show_first: bool,
-    first_log: str | None,
+    first_log: Literal["applus", "ap", "fcplus", "fc"] | str | None,
     show_second: bool,
-    second_log: str | None,
+    second_log: Literal["fdxplus", "fdx", "fsplus", "fs", "sync"] | str | None,
     output_path: str = "output.png",
     output_43_path: str = "output43.png",
 ):
@@ -263,7 +264,15 @@ def generate_score_image(
     # 画布尺寸
     canvas_width = 1280
     canvas_height = 720
-    background_color = (130, 100, 200, 255)
+
+    if difficulty == "utage":
+        background_color = (255, 111, 253, 255)
+    elif difficulty == "expert":
+        background_color = (255, 129, 141, 255)
+    elif difficulty == "remaster":
+        background_color = (218, 90, 255, 255)
+    else:
+        background_color = (130, 100, 200, 255)
 
     # 创建画布
     canvas = Image.new("RGBA", (canvas_width, canvas_height), background_color)
