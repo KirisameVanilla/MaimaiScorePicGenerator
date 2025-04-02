@@ -142,8 +142,8 @@ class MaimaiScorePicGeneratorApp(QWidget):
 
     def filter_list(self):
         keyword: str = self.search_box.text().lower()
+        self.list_songs()
         if keyword == "":
-            self.list_songs()
             return
         filtered_files: list[str] = [
             name
