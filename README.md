@@ -4,25 +4,17 @@
 - 手元视频封面
 
 ## 最新更新
-version 25.4.2.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.4.2.1/MaimaiScorePicGenerator.exe)
+version 25.5.11.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.5.11.1/MaimaiScorePicGenerator.exe)
+
+已集成所有资源文件, 只需要一个exe就能运行
 
 ## 使用方法
 - 前往 [RELEASE](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases) 页面, 或者直接点击下方蓝链
-- 根据版本顺序, 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.4.2.1/MaimaiScorePicGenerator.exe), [assets.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.24.1/assets.zip), [bgs.zip](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.3.21.2/bgs.zip)
-- 将两个zip解压
-- 将exe文件和两个zip解压后的结果放在同个目录下, 文件夹结构如下
-  ```
-  my_folder
-    |- MaimaiScorePicGenerator.exe
-    |
-    |- bgs
-    |   |- 『ウソテイ』 ～一回戦せりなvsしろなvsなずな～.jpg
-    |   |- Others
-    |
-    |- assets
-        |- ap.png
-        |- Others
-  ```
+- 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.5.11.1/MaimaiScorePicGenerator.exe)
+
+### Warning
+
+注意, 目前本工具的曲绘获取是从maimaidx.jp获取的, 请确保自己能连上maimaidx.jp
 
 ### GUI
 

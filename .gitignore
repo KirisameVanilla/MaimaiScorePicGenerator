@@ -2,10 +2,9 @@ venv/
 output43.png
 output.png
 bg.png
-bgs/
 MaimaiScorePicGenerator.exe
-MaimaiScorePicGenerator.spec
 build/
 MaimaiScorePicGenerator.zip
 assets.zip
 bgs.zip
+__pycache__/
