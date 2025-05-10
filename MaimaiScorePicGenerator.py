@@ -1,6 +1,7 @@
-import sys
+import json
 import os
-from typing import Literal
+import sys
+from typing import List, Literal, Optional, Dict, Any
 from PIL import Image, ImageDraw, ImageFont
 from PyQt6.QtWidgets import (
     QApplication,
@@ -15,12 +16,57 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QCheckBox,
 )
-from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QThread, pyqtSignal
 from pathlib import Path
 import requests
-import random
 import argparse
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class Chart:
+    level: float
+    charter: str
+    notes: List[Optional[int]]
+    levelHistory: Optional[Dict[str, float]] = field(default_factory=dict)
+
+
+@dataclass
+class Song:
+    id: int
+    type: int
+    name: str
+    artist: str
+    dimg: str
+    nimg: str
+    bpm: float
+    genre: int
+    version: int
+    date: str
+    regions: Dict[str, bool]
+    charts: List[Chart]
+    overrides: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
+    def nimg_url(self) -> str:
+        return f"https://maimaidx.jp/maimai-mobile/img/Music/{self.nimg}.png"
+
+    def __str__(self):
+        return self.name
+
+
+def parse_song(data: dict) -> Song:
+    charts = []
+    for chart_data in data.get("charts", []):
+        # 只取需要的字段，设置默认值
+        chart = Chart(
+            level=chart_data.get("level", 0),
+            charter=chart_data.get("charter", ""),
+            notes=chart_data.get("notes", []),
+            levelHistory=chart_data.get("levelHistory", {}),
+        )
+        charts.append(chart)
+    return Song(**{**data, "charts": charts})
 
 
 class DownloadThread(QThread):
@@ -29,6 +75,7 @@ class DownloadThread(QThread):
     )  # 发送 (file_name, 保存的文件路径)
     file_name: str
     url: str
+    ended: bool = False
 
     def __init__(self, file_name: str, url: str):
         super().__init__()
@@ -36,8 +83,11 @@ class DownloadThread(QThread):
         self.url = url
 
     def run(self):
+        import urllib3
+
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         """线程任务：下载文件"""
-        response: requests.Response = requests.get(self.url)
+        response: requests.Response = requests.get(self.url, verify=False)
         if response.status_code == 200:
             save_path = "bg.png"
             with open(save_path, "wb") as file:
@@ -46,12 +96,18 @@ class DownloadThread(QThread):
         else:
             print(f"下载失败，状态码: {response.status_code}")
 
+        self.ended = True
+
+    def end(self):
+        return self.ended
+
 
 class MaimaiScorePicGeneratorApp(QWidget):
     song_name: str = ""
     show_first: bool = False
     show_second: bool = False
     score: float = 0.0
+    songs: List[Song]
 
     def __init__(self):
         super().__init__()
@@ -95,9 +151,10 @@ class MaimaiScorePicGeneratorApp(QWidget):
         left_layout.addWidget(QLabel("难度"))
         left_layout.addWidget(self.difficulty_combo)
 
+        self.song_type_label = QLabel("谱面类型")
         self.song_type_combo = QComboBox(self)
-        self.song_type_combo.addItems(["dx", "standard"])
-        left_layout.addWidget(QLabel("谱面类型"))
+        self.song_type_combo.addItems(["standard", "dx"])
+        left_layout.addWidget(self.song_type_label)
         left_layout.addWidget(self.song_type_combo)
 
         self.play_log_check_first = QCheckBox("显示完成标", self)
@@ -128,8 +185,8 @@ class MaimaiScorePicGeneratorApp(QWidget):
         main_layout.addLayout(right_layout)  # 右侧是列表部分
 
         self.setLayout(main_layout)
+        self.songs = init_songs()
         self.list_songs()
-        self.set_random_icon()
 
     def get_all_items(self, list_widget: QListWidget) -> list[str]:
         # 获取 QListWidget 中的所有 items
@@ -159,13 +216,26 @@ class MaimaiScorePicGeneratorApp(QWidget):
 
     def list_songs(self):
         self.list_widget.clear()
-        songs: list[str] = os.listdir("bgs")
-        for song in songs:
-            self.list_widget.addItem(Path(song).stem)
+        added = []
+        for song in self.songs:
+            if song.__str__() in added:
+                continue
+            added.append(song.__str__())
+            self.list_widget.addItem(song.__str__())
 
     def on_item_clicked(self, item):
         self.song_name = item.text()
         self.setWindowTitle("舞萌DX成绩图生成器: " + self.song_name)
+        selected_song: list[Song] = where(
+            self.songs, lambda x: x.name == self.song_name
+        )
+        if len(selected_song) == 1:
+            self.song_type_combo.hide()
+            self.song_type_label.hide()
+            self.song_type_combo.setCurrentIndex(selected_song[0].type)
+        elif len(selected_song) == 2:
+            self.song_type_combo.show()
+            self.song_type_label.show()
 
     def on_submit(self):
         if not self.song_name:
@@ -192,7 +262,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
 
     def on_score_change(self, score: str):
         try:
-            self.score = float(score)
+            self.score = float(score) if score != "" else 0
             if self.score == 101.0:
                 self.play_log_combo_first.setCurrentText("applus")
             else:
@@ -214,12 +284,6 @@ class MaimaiScorePicGeneratorApp(QWidget):
         else:
             self.play_log_combo_second.hide()
 
-    def set_random_icon(self):
-        files = [
-            f for f in os.listdir("bgs/") if os.path.isfile(os.path.join("bgs/", f))
-        ]
-        self.setWindowIcon(QIcon(f"bgs/{random.choice(files)}"))
-
     def draw_text_with_outline(
         self,
         draw: ImageDraw.ImageDraw,
@@ -240,6 +304,23 @@ class MaimaiScorePicGeneratorApp(QWidget):
         draw.text(position, text, font=font, fill=text_color)
 
 
+def resource_path(relative_path):
+    # 打包后运行时会有 _MEIPASS 变量
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
+def init_songs() -> List[Song]:
+    with open(resource_path("songs.json"), "r", encoding="utf-8") as f:
+        data = json.load(f)
+        return [parse_song(song) for song in data]
+
+
+def where(data: list, predicate) -> list:
+    return [item for item in data if predicate(item)]
+
+
 def generate_score_image(
     song_name: str,
     score: float,
@@ -255,11 +336,20 @@ def generate_score_image(
 ):
     """通用图片生成函数"""
     # 验证背景图片存在
-    bg_path = Path(f"bgs/{song_name}.png")
+    songs = init_songs()
+    selected_song: list[Song] = where(songs, lambda x: x.name == song_name)
+    if len(selected_song) != 0:
+        bg_thread = DownloadThread(
+            f"{selected_song[0].name}", selected_song[0].nimg_url()
+        )
+        bg_thread.run()
+        while not bg_thread.end():
+            continue
+    else:
+        return
+    bg_path = Path("bg.png")
     if not bg_path.exists():
-        bg_path = Path(f"bgs/{song_name}.jpg")
-        if not bg_path.exists():
-            raise FileNotFoundError(f"背景图片 {bg_path} 不存在")
+        raise FileNotFoundError(f"背景图片 {bg_path} 不存在")
 
     # 画布尺寸
     canvas_width = 1280
@@ -298,23 +388,23 @@ def generate_score_image(
     )
 
     # 画难度
-    diff = Image.open(f"assets/diff_{difficulty}.png").convert("RGBA")
+    diff = Image.open(resource_path(f"assets/diff_{difficulty}.png")).convert("RGBA")
     resized_diff = diff.resize((diff.width * 5 // 2, diff.height * 5 // 2))
     canvas.paste(resized_diff, (30, 30), resized_diff)
 
     # 写歌名
-    song_name_font = ImageFont.truetype("assets/SourceHanSans-Bold.otf", 50)
+    song_name_font = ImageFont.truetype(resource_path("assets/SourceHanSans-Bold.otf"), 50)
     draw.text((440, 35), song_name, font=song_name_font, fill=(0, 0, 0))
 
     # 画谱面类型
-    type_img = Image.open(f"assets/music_{song_type}.png").convert("RGBA")
+    type_img = Image.open(resource_path(f"assets/music_{song_type}.png")).convert("RGBA")
     resized_type = type_img.resize((type_img.width * 3 // 2, type_img.height * 3 // 2))
     canvas.paste(resized_type, (10, 130), resized_type)
 
     # 处理Play Log
     def paste_log(image_name, pos):
         if image_name:
-            log_img = Image.open(f"assets/{image_name}.png").convert("RGBA")
+            log_img = Image.open(resource_path(f"assets/{image_name}.png")).convert("RGBA")
             scaled_log = log_img.resize(
                 (log_img.width * 5 // 2, log_img.height * 5 // 2)
             )
@@ -329,15 +419,15 @@ def generate_score_image(
         paste_log(log, pos)
 
     # 画DX Star
-    dx_star = Image.open(f"assets/music_icon_dxstar_{dx_rank}.png").convert("RGBA")
+    dx_star = Image.open(resource_path(f"assets/music_icon_dxstar_{dx_rank}.png")).convert("RGBA")
     resized_dx_star = dx_star.resize((105, 105))
     canvas.paste(resized_dx_star, (600, 150), resized_dx_star)
 
     # 画分数
     int_part = str(int(score))
     decimal_part = f"{score - int(score):.4f}"[1:] + "%"
-    score_font = ImageFont.truetype("assets/NotoSansCJKBold.otf", 120)
-    subscore_font = ImageFont.truetype("assets/NotoSansCJKBold.otf", 80)
+    score_font = ImageFont.truetype(resource_path("assets/NotoSansCJKBold.otf"), 120)
+    subscore_font = ImageFont.truetype(resource_path("assets/NotoSansCJKBold.otf"), 80)
 
     def draw_text_with_outline(position, text, font):
         offsets = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
@@ -389,7 +479,7 @@ def generate_score_image(
         if score >= 50
         else "d"
     )
-    ranking = Image.open(f"assets/{rank}.png").convert("RGBA")
+    ranking = Image.open(resource_path(f"assets/{rank}.png")).convert("RGBA")
     resized_rank = ranking.resize((ranking.width * 3 // 2, ranking.height * 3 // 2))
     canvas.paste(resized_rank, (900, 400), resized_rank)
 
