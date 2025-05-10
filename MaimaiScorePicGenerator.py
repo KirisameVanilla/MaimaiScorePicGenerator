@@ -312,22 +312,21 @@ def generate_score_image(
     canvas.paste(resized_type, (10, 130), resized_type)
 
     # 处理Play Log
-    def paste_log(image_name, y_pos):
+    def paste_log(image_name, pos):
         if image_name:
             log_img = Image.open(f"assets/{image_name}.png").convert("RGBA")
             scaled_log = log_img.resize(
                 (log_img.width * 5 // 2, log_img.height * 5 // 2)
             )
-            canvas.paste(scaled_log, (600, y_pos), scaled_log)
+            canvas.paste(scaled_log, pos, scaled_log)
 
     logs = []
     if show_first and first_log:
-        logs.append((first_log, 350))
+        logs.append((first_log, (600, 400)))
     if show_second and second_log:
-        logs.append((second_log, 500 if show_first else 400))
-
-    for log, y in logs:
-        paste_log(log, y)
+        logs.append((second_log, (590, 530) if len(logs) == 1 else (590, 400)))
+    for log, pos in logs:
+        paste_log(log, pos)
 
     # 画DX Star
     dx_star = Image.open(f"assets/music_icon_dxstar_{dx_rank}.png").convert("RGBA")
