@@ -50,12 +50,9 @@ class Song:
 
     def nimg_url(self) -> str:
         return f"https://maimaidx.jp/maimai-mobile/img/Music/{self.nimg}.png"
-    
+
     def dimg_url(self) -> str:
         return f"https://shama.dxrating.net/images/cover/v2/{self.dimg}.jpg"
-
-    def __str__(self):
-        return self.name
 
 
 def parse_song(data: dict) -> Song:
@@ -221,10 +218,10 @@ class MaimaiScorePicGeneratorApp(QWidget):
         self.list_widget.clear()
         added = []
         for song in self.songs:
-            if song.__str__() in added:
+            if song.name in added:
                 continue
-            added.append(song.__str__())
-            self.list_widget.addItem(song.__str__())
+            added.append(song.name)
+            self.list_widget.addItem(song.name)
 
     def on_item_clicked(self, item):
         self.song_name = item.text()
@@ -396,18 +393,24 @@ def generate_score_image(
     canvas.paste(resized_diff, (30, 30), resized_diff)
 
     # 写歌名
-    song_name_font = ImageFont.truetype(resource_path("assets/SourceHanSans-Bold.otf"), 50)
+    song_name_font = ImageFont.truetype(
+        resource_path("assets/SourceHanSans-Bold.otf"), 50
+    )
     draw.text((440, 35), song_name, font=song_name_font, fill=(0, 0, 0))
 
     # 画谱面类型
-    type_img = Image.open(resource_path(f"assets/music_{song_type}.png")).convert("RGBA")
+    type_img = Image.open(resource_path(f"assets/music_{song_type}.png")).convert(
+        "RGBA"
+    )
     resized_type = type_img.resize((type_img.width * 3 // 2, type_img.height * 3 // 2))
     canvas.paste(resized_type, (10, 130), resized_type)
 
     # 处理Play Log
     def paste_log(image_name, pos):
         if image_name:
-            log_img = Image.open(resource_path(f"assets/{image_name}.png")).convert("RGBA")
+            log_img = Image.open(resource_path(f"assets/{image_name}.png")).convert(
+                "RGBA"
+            )
             scaled_log = log_img.resize(
                 (log_img.width * 5 // 2, log_img.height * 5 // 2)
             )
@@ -422,7 +425,9 @@ def generate_score_image(
         paste_log(log, pos)
 
     # 画DX Star
-    dx_star = Image.open(resource_path(f"assets/music_icon_dxstar_{dx_rank}.png")).convert("RGBA")
+    dx_star = Image.open(
+        resource_path(f"assets/music_icon_dxstar_{dx_rank}.png")
+    ).convert("RGBA")
     resized_dx_star = dx_star.resize((105, 105))
     canvas.paste(resized_dx_star, (600, 150), resized_dx_star)
 
