@@ -50,6 +50,9 @@ class Song:
 
     def nimg_url(self) -> str:
         return f"https://maimaidx.jp/maimai-mobile/img/Music/{self.nimg}.png"
+    
+    def dimg_url(self) -> str:
+        return f"https://shama.dxrating.net/images/cover/v2/{self.dimg}.jpg"
 
     def __str__(self):
         return self.name
@@ -340,7 +343,7 @@ def generate_score_image(
     selected_song: list[Song] = where(songs, lambda x: x.name == song_name)
     if len(selected_song) != 0:
         bg_thread = DownloadThread(
-            f"{selected_song[0].name}", selected_song[0].nimg_url()
+            f"{selected_song[0].name}", selected_song[0].dimg_url()
         )
         bg_thread.run()
         while not bg_thread.end():
