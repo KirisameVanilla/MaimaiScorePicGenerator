@@ -3,7 +3,7 @@ import os
 import glob
 
 assets_files = glob.glob(os.path.join('assets', '*'))
-datas = [('songs.json', '.')] + [(file, 'assets') for file in assets_files]
+datas = [('dxdata.json', '.')] + [(file, 'assets') for file in assets_files]
 
 a = Analysis(
     ['MaimaiScorePicGenerator.py'],

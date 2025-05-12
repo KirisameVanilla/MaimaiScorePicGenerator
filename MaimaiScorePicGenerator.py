@@ -24,49 +24,54 @@ import argparse
 from dataclasses import dataclass, field
 
 
-@dataclass
-class Chart:
-    level: float
-    charter: str
-    notes: List[Optional[int]]
-    levelHistory: Optional[Dict[str, float]] = field(default_factory=dict)
+class SimplifiedSong:
+    def __init__(self, title: str, artist: str, image_name: str, types: list[str], searchAcronyms:list[str]):
+        self.title = title
+        self.artist = artist
+        self.image_name = image_name
+        self.types = types
+        self.searchAcronyms = searchAcronyms
 
+    def to_dict(self) -> dict:
+        return {
+            "title": self.title,
+            "artist": self.artist,
+            "imageName": self.image_name,
+            "types": self.types
+        }
 
-@dataclass
-class Song:
-    id: int
-    type: int
-    name: str
-    artist: str
-    dimg: str
-    nimg: str
-    bpm: float
-    genre: int
-    version: int
-    date: str
-    regions: Dict[str, bool]
-    charts: List[Chart]
-    overrides: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-
-    def nimg_url(self) -> str:
-        return f"https://maimaidx.jp/maimai-mobile/img/Music/{self.nimg}.png"
-
+    def __repr__(self):
+        return f"SimplifiedSong(title={self.title!r}, artist={self.artist!r}, types={self.types!r}, searchAcronyms={self.searchAcronyms})"
+    
+    def all_names(self) -> str:
+        return " ".join([self.title, self.artist] + self.searchAcronyms).lower()
+    
     def dimg_url(self) -> str:
-        return f"https://shama.dxrating.net/images/cover/v2/{self.dimg}.jpg"
+        return f"https://shama.dxrating.net/images/cover/v2/{self.image_name}.jpg"
 
+def init_data() -> list[SimplifiedSong]:
+    with open(resource_path("dxdata.json"), "r", encoding="utf-8") as f:
+        raw_data = json.load(f)
+        raw_data = raw_data["songs"]
 
-def parse_song(data: dict) -> Song:
-    charts = []
-    for chart_data in data.get("charts", []):
-        # 只取需要的字段，设置默认值
-        chart = Chart(
-            level=chart_data.get("level", 0),
-            charter=chart_data.get("charter", ""),
-            notes=chart_data.get("notes", []),
-            levelHistory=chart_data.get("levelHistory", {}),
+    simplified_songs = []
+    for song in raw_data:
+        types = list(set(sheet["type"] for sheet in song.get("sheets", [])))
+        for songtype in types:
+            if songtype != "dx" and songtype != "std":
+                types.remove(songtype)
+        if (len(types) == 0):
+            types = ["dx"]
+        simplified = SimplifiedSong(
+            title=song.get("title", ""),
+            artist=song.get("artist", ""),
+            image_name=song.get("imageName", ""),
+            types=types,
+            searchAcronyms=song.get("searchAcronyms", [])
         )
-        charts.append(chart)
-    return Song(**{**data, "charts": charts})
+        simplified_songs.append(simplified)
+    
+    return simplified_songs
 
 
 class DownloadThread(QThread):
@@ -107,7 +112,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
     show_first: bool = False
     show_second: bool = False
     score: float = 0.0
-    songs: List[Song]
+    dxdata: list[SimplifiedSong]
 
     def __init__(self):
         super().__init__()
@@ -185,7 +190,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         main_layout.addLayout(right_layout)  # 右侧是列表部分
 
         self.setLayout(main_layout)
-        self.songs = init_songs()
+        self.dxdata = init_data()
         self.list_songs()
 
     def get_all_items(self, list_widget: QListWidget) -> list[str]:
@@ -202,11 +207,17 @@ class MaimaiScorePicGeneratorApp(QWidget):
         self.list_songs()
         if keyword == "":
             return
-        filtered_files: list[str] = [
+        # match alias
+        matched_alias: list[SimplifiedSong] = where(self.dxdata, lambda x: keyword.lower() in x.all_names())
+        matched_alias_str: list[str] = [s.title for s in matched_alias]
+        # match name
+        matched_name: list[str] = [
             name
             for name in self.get_all_items(self.list_widget)
             if keyword in name.lower()
         ]
+        # all
+        filtered_files: list[str] = list(set(matched_alias_str + matched_name))
         self.update_list(filtered_files)
 
     def update_list(self, items):
@@ -217,25 +228,27 @@ class MaimaiScorePicGeneratorApp(QWidget):
     def list_songs(self):
         self.list_widget.clear()
         added = []
-        for song in self.songs:
-            if song.name in added:
+        for song in self.dxdata:
+            if song.title in added:
                 continue
-            added.append(song.name)
-            self.list_widget.addItem(song.name)
+            added.append(song.title)
+            self.list_widget.addItem(song.title)
 
     def on_item_clicked(self, item):
         self.song_name = item.text()
         self.setWindowTitle("舞萌DX成绩图生成器: " + self.song_name)
-        selected_song: list[Song] = where(
-            self.songs, lambda x: x.name == self.song_name
+        selected_song: list[SimplifiedSong] = where(
+            self.dxdata, lambda x: x.title == self.song_name
         )
         if len(selected_song) == 1:
-            self.song_type_combo.hide()
-            self.song_type_label.hide()
-            self.song_type_combo.setCurrentIndex(selected_song[0].type)
-        elif len(selected_song) == 2:
-            self.song_type_combo.show()
-            self.song_type_label.show()
+            song = selected_song[0]
+            if (len(song.types) == 1):
+                self.song_type_combo.hide()
+                self.song_type_label.hide()
+                self.song_type_combo.setCurrentIndex(0 if song.types[0] == "std" else 1)
+            elif len(song.types) == 2:
+                self.song_type_combo.show()
+                self.song_type_label.show()
 
     def on_submit(self):
         if not self.song_name:
@@ -310,13 +323,6 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-
-def init_songs() -> List[Song]:
-    with open(resource_path("songs.json"), "r", encoding="utf-8") as f:
-        data = json.load(f)
-        return [parse_song(song) for song in data]
-
-
 def where(data: list, predicate) -> list:
     return [item for item in data if predicate(item)]
 
@@ -336,11 +342,11 @@ def generate_score_image(
 ):
     """通用图片生成函数"""
     # 验证背景图片存在
-    songs = init_songs()
-    selected_song: list[Song] = where(songs, lambda x: x.name == song_name)
+    songs = init_data()
+    selected_song: list[SimplifiedSong] = where(songs, lambda x: x.title == song_name)
     if len(selected_song) != 0:
         bg_thread = DownloadThread(
-            f"{selected_song[0].name}", selected_song[0].dimg_url()
+            f"{selected_song[0].title}", selected_song[0].dimg_url()
         )
         bg_thread.run()
         while not bg_thread.end():
