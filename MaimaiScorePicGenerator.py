@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from typing import List, Literal, Optional, Dict, Any
+from typing import Literal
 from PIL import Image, ImageDraw, ImageFont
 from PyQt6.QtWidgets import (
     QApplication,
@@ -21,11 +21,16 @@ from pathlib import Path
 import requests
 import argparse
 
-from dataclasses import dataclass, field
-
 
 class SimplifiedSong:
-    def __init__(self, title: str, artist: str, image_name: str, types: list[str], searchAcronyms:list[str]):
+    def __init__(
+        self,
+        title: str,
+        artist: str,
+        image_name: str,
+        types: list[str],
+        searchAcronyms: list[str],
+    ):
         self.title = title
         self.artist = artist
         self.image_name = image_name
@@ -37,17 +42,19 @@ class SimplifiedSong:
             "title": self.title,
             "artist": self.artist,
             "imageName": self.image_name,
-            "types": self.types
+            "types": self.types,
+            "searchAcronyms": self.searchAcronyms,
         }
 
     def __repr__(self):
         return f"SimplifiedSong(title={self.title!r}, artist={self.artist!r}, types={self.types!r}, searchAcronyms={self.searchAcronyms})"
-    
+
     def all_names(self) -> str:
         return " ".join([self.title, self.artist] + self.searchAcronyms).lower()
-    
+
     def dimg_url(self) -> str:
         return f"https://shama.dxrating.net/images/cover/v2/{self.image_name}.jpg"
+
 
 def init_data() -> list[SimplifiedSong]:
     with open(resource_path("dxdata.json"), "r", encoding="utf-8") as f:
@@ -60,17 +67,17 @@ def init_data() -> list[SimplifiedSong]:
         for songtype in types:
             if songtype != "dx" and songtype != "std":
                 types.remove(songtype)
-        if (len(types) == 0):
+        if len(types) == 0:
             types = ["dx"]
         simplified = SimplifiedSong(
             title=song.get("title", ""),
             artist=song.get("artist", ""),
             image_name=song.get("imageName", ""),
             types=types,
-            searchAcronyms=song.get("searchAcronyms", [])
+            searchAcronyms=song.get("searchAcronyms", []),
         )
         simplified_songs.append(simplified)
-    
+
     return simplified_songs
 
 
@@ -208,7 +215,9 @@ class MaimaiScorePicGeneratorApp(QWidget):
         if keyword == "":
             return
         # match alias
-        matched_alias: list[SimplifiedSong] = where(self.dxdata, lambda x: keyword.lower() in x.all_names())
+        matched_alias: list[SimplifiedSong] = where(
+            self.dxdata, lambda x: keyword.lower() in x.all_names()
+        )
         matched_alias_str: list[str] = [s.title for s in matched_alias]
         # match name
         matched_name: list[str] = [
@@ -242,7 +251,7 @@ class MaimaiScorePicGeneratorApp(QWidget):
         )
         if len(selected_song) == 1:
             song = selected_song[0]
-            if (len(song.types) == 1):
+            if len(song.types) == 1:
                 self.song_type_combo.hide()
                 self.song_type_label.hide()
                 self.song_type_combo.setCurrentIndex(0 if song.types[0] == "std" else 1)
@@ -322,6 +331,7 @@ def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
 
 def where(data: list, predicate) -> list:
     return [item for item in data if predicate(item)]
