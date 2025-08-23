@@ -4,13 +4,13 @@
 - 手元视频封面
 
 ## 最新更新
-version 25.5.12.3: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.5.12.3/MaimaiScorePicGenerator.exe)
+version 25.8.23.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.8.23.1/MaimaiScorePicGenerator.exe)
 
 已集成所有资源文件, 只需要一个exe就能运行
 
 ## 使用方法
 - 前往 [RELEASE](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases) 页面, 或者直接点击下方蓝链
-- 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.5.12.3/MaimaiScorePicGenerator.exe)
+- 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.8.23.1/MaimaiScorePicGenerator.exe)
 
 ### Chore
 
