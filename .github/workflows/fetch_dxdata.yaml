@@ -1,0 +1,90 @@
+name: Fetch dxdata.json
+
+on:
+  schedule:
+    # 每天 UTC 时间 00:00 运行（UTC+8 时间 08:00）
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-dxdata:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set timezone to UTC+8
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+      
+      - name: Download latest dxdata.json
+        run: |
+          curl -o dxdata_new.json https://raw.githubusercontent.com/gekichumai/dxrating/refs/heads/main/packages/dxdata/dxdata.json
+          if [ $? -ne 0 ]; then
+            echo "Failed to download dxdata.json"
+            exit 1
+          fi
+      
+      - name: Compare and update dxdata.json
+        id: check_update
+        run: |
+          if ! diff -q dxdata.json dxdata_new.json > /dev/null 2>&1; then
+            cp dxdata_new.json dxdata.json
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+          fi
+          rm -f dxdata_new.json
+      
+      - name: Configure git
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: Commit and create tag
+        if: steps.check_update.outputs.update_needed == 'true'
+        run: |
+          git add dxdata.json
+          git commit -m "chore: update dxdata.json"
+          
+          # 获取当前日期（UTC+8）并格式化为 YY.M.D
+          DATE_TAG=$(date +'%y.%-m.%-d')
+          
+          # 检查是否存在同一天的标签，如果存在则递增序号
+          TAG_BASE="$DATE_TAG"
+          TAG_COUNT=1
+          TAG="$TAG_BASE.$TAG_COUNT"
+          
+          while git rev-parse "$TAG" > /dev/null 2>&1; do
+            TAG_COUNT=$((TAG_COUNT + 1))
+            TAG="$TAG_BASE.$TAG_COUNT"
+          done
+          
+          git tag "$TAG"
+          echo "Created tag: $TAG"
+      
+      - name: Push changes and tags
+        if: steps.check_update.outputs.update_needed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git master
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git --tags
+      
+      - name: Trigger publish workflow
+        if: steps.check_update.outputs.update_needed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 等待一秒让 GitHub 识别新 tag
+          sleep 1
+          
+          # 获取最新的 tag
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          
+          # 使用 gh 命令手动触发发布工作流
+          gh workflow run publish.yaml --ref "$LATEST_TAG"
