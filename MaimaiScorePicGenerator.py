@@ -1,6 +1,6 @@
-import json
 import os
 import sys
+from functools import lru_cache
 from typing import Literal
 from PIL import Image, ImageDraw, ImageFont
 from PyQt6.QtWidgets import (
@@ -20,6 +20,9 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from pathlib import Path
 import requests
 import argparse
+
+
+DXDATA_URL = "https://ghproxy.vanillaaaa.org/https://raw.githubusercontent.com/gekichumai/dxrating/refs/heads/main/packages/dxdata/dxdata.json"
 
 
 class SimplifiedSong:
@@ -56,13 +59,28 @@ class SimplifiedSong:
         return f"https://shama.dxrating.net/images/cover/v2/{self.image_name}.jpg"
 
 
+@lru_cache(maxsize=None)
+def load_dxdata(url: str) -> dict:
+    if not url:
+        raise ValueError("DXDATA_URL 不能为空")
+
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise RuntimeError(f"无法解析 dxdata.json: {url}") from exc
+
+
 def init_data() -> list[SimplifiedSong]:
-    with open(resource_path("dxdata.json"), "r", encoding="utf-8") as f:
-        raw_data = json.load(f)
-        raw_data = raw_data["songs"]
+    raw_data = load_dxdata(DXDATA_URL)
+    songs_data = raw_data.get("songs")
+    if not isinstance(songs_data, list):
+        raise RuntimeError("dxdata.json 格式不正确，缺少 songs 列表")
 
     simplified_songs = []
-    for song in raw_data:
+    for song in songs_data:
         types = list(set(sheet["type"] for sheet in song.get("sheets", [])))
         for songtype in types:
             if songtype != "dx" and songtype != "std":
@@ -573,6 +591,10 @@ if __name__ == "__main__":
     # GUI模式
     else:
         app = QApplication(sys.argv)
-        window = MaimaiScorePicGeneratorApp()
+        try:
+            window = MaimaiScorePicGeneratorApp()
+        except Exception as exc:
+            QMessageBox.critical(None, "启动失败", str(exc))
+            sys.exit(1)
         window.show()
         sys.exit(app.exec())

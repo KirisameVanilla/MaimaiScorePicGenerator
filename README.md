@@ -1,20 +1,26 @@
 # 舞萌DX成绩图生成器
 
 ## 使用场景
+
 - 手元视频封面
 
 ## 最新更新
+
 version 25.8.23.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.8.23.1/MaimaiScorePicGenerator.exe)
 
 已集成所有资源文件, 只需要一个exe就能运行
+曲库数据会在程序启动时从内置地址自动加载
 
 ## 使用方法
+
 - 前往 [RELEASE](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases) 页面, 或者直接点击下方蓝链
 - 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.8.23.1/MaimaiScorePicGenerator.exe)
 
 ### Chore
 
 注意, 目前本工具的曲绘获取是从 [dxrating](https://shama.dxrating.net) 获取的, 所以离线/连接不上dxrating时无法使用
+
+程序已经内置 `dxdata.json` 的获取地址, 启动后会自动加载
 
 ### GUI
 
@@ -30,9 +36,12 @@ version 25.8.23.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVani
 
 --show-first 和 --first-log, --show-second 和 --second-log 必须同时出现
 
-
 ## 图例
+
 ### 16:9比例
+
 ![](examples/eg.png)
+
 ### 4:3比例
+
 ![](examples/eg43.png)
