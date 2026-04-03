@@ -1,20 +1,21 @@
 # 舞萌DX成绩图生成器
 
+![Tag](https://img.shields.io/badge/tag-v1.0-0A7BBB)
+
 ## 使用场景
 
 - 手元视频封面
 
 ## 最新更新
 
-version 25.8.23.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.8.23.1/MaimaiScorePicGenerator.exe)
+version v1.0: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/latest/download/MaimaiScorePicGenerator.exe)
 
 已集成所有资源文件, 只需要一个exe就能运行
 曲库数据会在程序启动时从内置地址自动加载
 
 ## 使用方法
 
-- 前往 [RELEASE](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases) 页面, 或者直接点击下方蓝链
-- 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/download/25.8.23.1/MaimaiScorePicGenerator.exe)
+- 下载最新的 [MaimaiScorePicGenerator.exe](https://github.com/KirisameVanilla/MaimaiScorePicGenerator/releases/latest/download/MaimaiScorePicGenerator.exe)
 
 ### Chore
 
