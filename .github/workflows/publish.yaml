@@ -23,7 +23,7 @@ jobs:
         id: readme_tag
         shell: bash
         run: |
-          TAG=$(grep -oP 'https://img\.shields\.io/badge/tag-\K[^-)]+' README.md | head -n 1)
+          TAG=$(sed -nE 's#.*https://img\.shields\.io/badge/tag-(.+)-[[:xdigit:]]{6}.*#\1#p' README.md | head -n 1)
           if [ -z "$TAG" ]; then
             echo "Failed to parse tag from README badge."
             exit 1
