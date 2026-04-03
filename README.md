@@ -26,6 +26,8 @@ version 25.8.23.1: [MaimaiScorePicGenerator.exe](https://github.com/KirisameVani
 
 运行 *MaimaiScorePicGenerator.exe*
 
+GUI 已改为使用 Python 内置的 tkinter，不再依赖 PyQt6。
+
 ### 命令行(not recommended)
 
 *注意: 带特殊符号的参数可能无法正确处理, 如"411Ψ892", 您需要在bgs文件夹中手动删除掉引号, 将其变成411Ψ892*

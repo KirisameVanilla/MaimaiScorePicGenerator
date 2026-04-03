@@ -1,22 +1,11 @@
 import os
 import sys
+import threading
 from functools import lru_cache
 from typing import Literal
+import tkinter as tk
+from tkinter import messagebox, ttk
 from PIL import Image, ImageDraw, ImageFont
-from PyQt6.QtWidgets import (
-    QApplication,
-    QWidget,
-    QVBoxLayout,
-    QListWidget,
-    QPushButton,
-    QLineEdit,
-    QMessageBox,
-    QLabel,
-    QComboBox,
-    QHBoxLayout,
-    QCheckBox,
-)
-from PyQt6.QtCore import QThread, pyqtSignal
 from pathlib import Path
 import requests
 import argparse
@@ -99,40 +88,16 @@ def init_data() -> list[SimplifiedSong]:
     return simplified_songs
 
 
-class DownloadThread(QThread):
-    download_complete: pyqtSignal = pyqtSignal(
-        str, str
-    )  # 发送 (file_name, 保存的文件路径)
-    file_name: str
-    url: str
-    ended: bool = False
+def download_file(url: str, save_path: str) -> None:
+    import urllib3
 
-    def __init__(self, file_name: str, url: str):
-        super().__init__()
-        self.file_name = file_name
-        self.url = url
-
-    def run(self):
-        import urllib3
-
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        """线程任务：下载文件"""
-        response: requests.Response = requests.get(self.url, verify=False)
-        if response.status_code == 200:
-            save_path = "bg.png"
-            with open(save_path, "wb") as file:
-                file.write(response.content)
-            self.download_complete.emit(self.file_name, save_path)  # 发送信号
-        else:
-            print(f"下载失败，状态码: {response.status_code}")
-
-        self.ended = True
-
-    def end(self):
-        return self.ended
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    response: requests.Response = requests.get(url, verify=False, timeout=30)
+    response.raise_for_status()
+    Path(save_path).write_bytes(response.content)
 
 
-class MaimaiScorePicGeneratorApp(QWidget):
+class MaimaiScorePicGeneratorApp:
     song_name: str = ""
     show_first: bool = False
     show_second: bool = False
@@ -140,214 +105,283 @@ class MaimaiScorePicGeneratorApp(QWidget):
     dxdata: list[SimplifiedSong]
 
     def __init__(self):
-        super().__init__()
-        self.init_ui()
+        self.root = tk.Tk()
+        self.root.title("舞萌DX成绩图生成器")
+        self.root.geometry("900x420")
+        self.root.minsize(860, 380)
 
-    def init_ui(self):
-        self.setWindowTitle("舞萌DX成绩图生成器")
-        self.setGeometry(100, 100, 600, 300)
-        main_layout = QHBoxLayout()  # 主水平布局
+        self.search_var = tk.StringVar()
+        self.score_var = tk.StringVar(value="100.0")
+        self.dx_rank_var = tk.StringVar(value="1")
+        self.difficulty_var = tk.StringVar(value="master")
+        self.song_type_var = tk.StringVar(value="dx")
+        self.play_log_first_var = tk.StringVar(value="applus")
+        self.play_log_second_var = tk.StringVar(value="fdxplus")
+        self.show_first_var = tk.BooleanVar(value=True)
+        self.show_second_var = tk.BooleanVar(value=True)
 
-        # 右侧搜索框 + 列表 + 刷新按钮的布局
-        right_layout = QVBoxLayout()
-        self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("输入关键字搜索...")
-        self.search_box.textChanged.connect(self.filter_list)
-        right_layout.addWidget(self.search_box)
-
-        self.list_widget = QListWidget()
-        self.list_widget.itemClicked.connect(self.on_item_clicked)
-        right_layout.addWidget(self.list_widget)
-
-        self.refresh_button = QPushButton("刷新文件列表")
-        self.refresh_button.clicked.connect(self.list_songs)
-        right_layout.addWidget(self.refresh_button)
-
-        # 左侧表单布局
-        left_layout = QVBoxLayout()
-        self.score_input = QLineEdit(self)
-        self.score_input.setPlaceholderText("请输入成绩 (例如 100.1)")
-        left_layout.addWidget(QLabel("达成率"))
-        left_layout.addWidget(self.score_input)
-        self.score_input.textChanged.connect(self.on_score_change)
-
-        self.dx_rank_combo = QComboBox(self)
-        self.dx_rank_combo.addItems(["1", "2", "3", "4", "5"])
-        left_layout.addWidget(QLabel("DX 分数等级"))
-        left_layout.addWidget(self.dx_rank_combo)
-
-        self.difficulty_combo = QComboBox(self)
-        self.difficulty_combo.addItems(["master", "remaster", "expert", "utage"])
-        left_layout.addWidget(QLabel("难度"))
-        left_layout.addWidget(self.difficulty_combo)
-
-        self.song_type_label = QLabel("谱面类型")
-        self.song_type_combo = QComboBox(self)
-        self.song_type_combo.addItems(["standard", "dx"])
-        left_layout.addWidget(self.song_type_label)
-        left_layout.addWidget(self.song_type_combo)
-
-        self.play_log_check_first = QCheckBox("显示完成标", self)
-        self.play_log_check_second = QCheckBox("显示Sync标", self)
-        self.play_log_combo_first = QComboBox(self)
-        self.play_log_combo_first.addItems(["applus", "ap", "fcplus", "fc"])
-        self.play_log_combo_first.hide()
-        self.play_log_combo_second = QComboBox(self)
-        self.play_log_combo_second.addItems(["fdxplus", "fdx", "fsplus", "fs", "sync"])
-        self.play_log_combo_second.hide()
-        left_layout.addWidget(QLabel("Play Log"))
-        left_layout.addWidget(self.play_log_check_first)
-        left_layout.addWidget(self.play_log_combo_first)
-        left_layout.addWidget(self.play_log_check_second)
-        left_layout.addWidget(self.play_log_combo_second)
-        self.play_log_check_first.stateChanged.connect(self.on_check_box_first_change)
-        self.play_log_check_second.stateChanged.connect(self.on_check_box_second_change)
-        self.play_log_check_first.setChecked(True)
-        self.play_log_check_second.setChecked(True)
-
-        # 提交按钮
-        self.submit_button = QPushButton("提交", self)
-        self.submit_button.clicked.connect(self.on_submit)
-        left_layout.addWidget(self.submit_button)
-
-        # 将左右两部分添加到主布局
-        main_layout.addLayout(left_layout)  # 左侧是输入部分
-        main_layout.addLayout(right_layout)  # 右侧是列表部分
-
-        self.setLayout(main_layout)
         self.dxdata = init_data()
+        self.all_titles: list[str] = []
+
+        self._build_ui()
+        self._sync_play_log_visibility()
         self.list_songs()
 
-    def get_all_items(self, list_widget: QListWidget) -> list[str]:
-        # 获取 QListWidget 中的所有 items
-        items = []
-        for i in range(list_widget.count()):
-            item = list_widget.item(i)
-            assert item is not None
-            items.append(item.text())
-        return items
+        self.search_var.trace_add("write", self.filter_list)
+        self.score_var.trace_add("write", self.on_score_change)
 
-    def filter_list(self):
-        keyword: str = self.search_box.text().lower()
-        self.list_songs()
-        if keyword == "":
-            return
-        # match alias
-        matched_alias: list[SimplifiedSong] = where(
-            self.dxdata, lambda x: keyword.lower() in x.all_names()
+    def _build_ui(self):
+        main_frame = ttk.Frame(self.root, padding=12)
+        main_frame.pack(fill="both", expand=True)
+
+        left_frame = ttk.Frame(main_frame)
+        right_frame = ttk.Frame(main_frame)
+        left_frame.pack(side="left", fill="y", padx=(0, 12))
+        right_frame.pack(side="right", fill="both", expand=True)
+
+        ttk.Label(left_frame, text="达成率").pack(anchor="w")
+        self.score_input = ttk.Entry(left_frame, textvariable=self.score_var, width=28)
+        self.score_input.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(left_frame, text="DX 分数等级").pack(anchor="w")
+        self.dx_rank_combo = ttk.Combobox(
+            left_frame,
+            textvariable=self.dx_rank_var,
+            values=["1", "2", "3", "4", "5"],
+            state="readonly",
+            width=26,
         )
-        matched_alias_str: list[str] = [s.title for s in matched_alias]
-        # match name
-        matched_name: list[str] = [
-            name
-            for name in self.get_all_items(self.list_widget)
-            if keyword in name.lower()
-        ]
-        # all
-        filtered_files: list[str] = list(set(matched_alias_str + matched_name))
-        self.update_list(filtered_files)
+        self.dx_rank_combo.pack(fill="x", pady=(0, 8))
 
-    def update_list(self, items):
-        self.list_widget.clear()
+        ttk.Label(left_frame, text="难度").pack(anchor="w")
+        self.difficulty_combo = ttk.Combobox(
+            left_frame,
+            textvariable=self.difficulty_var,
+            values=["master", "remaster", "expert", "utage"],
+            state="readonly",
+            width=26,
+        )
+        self.difficulty_combo.pack(fill="x", pady=(0, 8))
+
+        self.song_type_label = ttk.Label(left_frame, text="谱面类型")
+        self.song_type_label.pack(anchor="w")
+        self.song_type_combo = ttk.Combobox(
+            left_frame,
+            textvariable=self.song_type_var,
+            values=["standard", "dx"],
+            state="readonly",
+            width=26,
+        )
+        self.song_type_combo.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(left_frame, text="Play Log").pack(anchor="w", pady=(4, 0))
+        self.play_log_first_check = ttk.Checkbutton(
+            left_frame,
+            text="显示完成标",
+            variable=self.show_first_var,
+            command=self.on_check_box_first_change,
+        )
+        self.play_log_first_check.pack(anchor="w")
+        self.play_log_first_combo = ttk.Combobox(
+            left_frame,
+            textvariable=self.play_log_first_var,
+            values=["applus", "ap", "fcplus", "fc"],
+            state="readonly",
+            width=26,
+        )
+        self.play_log_first_combo.pack(fill="x", pady=(0, 8))
+
+        self.play_log_second_check = ttk.Checkbutton(
+            left_frame,
+            text="显示Sync标",
+            variable=self.show_second_var,
+            command=self.on_check_box_second_change,
+        )
+        self.play_log_second_check.pack(anchor="w")
+        self.play_log_second_combo = ttk.Combobox(
+            left_frame,
+            textvariable=self.play_log_second_var,
+            values=["fdxplus", "fdx", "fsplus", "fs", "sync"],
+            state="readonly",
+            width=26,
+        )
+        self.play_log_second_combo.pack(fill="x", pady=(0, 8))
+
+        self.submit_button = ttk.Button(left_frame, text="提交", command=self.on_submit)
+        self.submit_button.pack(fill="x", pady=(10, 0))
+
+        ttk.Label(right_frame, text="输入关键字搜索...").pack(anchor="w")
+        self.search_entry = ttk.Entry(right_frame, textvariable=self.search_var)
+        self.search_entry.pack(fill="x", pady=(0, 8))
+
+        list_area = ttk.Frame(right_frame)
+        list_area.pack(fill="both", expand=True)
+
+        self.listbox = tk.Listbox(list_area, activestyle="dotbox")
+        scrollbar = ttk.Scrollbar(
+            list_area, orient="vertical", command=self.listbox.yview
+        )
+        self.listbox.configure(yscrollcommand=scrollbar.set)
+        self.listbox.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.listbox.bind("<<ListboxSelect>>", self.on_item_clicked)
+
+        self.refresh_button = ttk.Button(
+            right_frame, text="刷新文件列表", command=self.list_songs
+        )
+        self.refresh_button.pack(fill="x", pady=(8, 0))
+
+    def get_all_items(self) -> list[str]:
+        return list(self.listbox.get(0, tk.END))
+
+    def _set_list_items(self, items: list[str]):
+        self.listbox.delete(0, tk.END)
         for item in items:
-            self.list_widget.addItem(item)
+            self.listbox.insert(tk.END, item)
+
+    def filter_list(self, *_):
+        keyword = self.search_var.get().strip().lower()
+        if not keyword:
+            self.list_songs()
+            return
+
+        matched_alias = [
+            song.title for song in self.dxdata if keyword in song.all_names()
+        ]
+        matched_name = [title for title in self.all_titles if keyword in title.lower()]
+        self._set_list_items(list(dict.fromkeys(matched_alias + matched_name)))
 
     def list_songs(self):
-        self.list_widget.clear()
-        added = []
+        added = set()
+        self.all_titles = []
         for song in self.dxdata:
             if song.title in added:
                 continue
-            added.append(song.title)
-            self.list_widget.addItem(song.title)
+            added.add(song.title)
+            self.all_titles.append(song.title)
+        self._set_list_items(self.all_titles)
 
-    def on_item_clicked(self, item):
-        self.song_name = item.text()
-        self.setWindowTitle("舞萌DX成绩图生成器: " + self.song_name)
-        selected_song: list[SimplifiedSong] = where(
-            self.dxdata, lambda x: x.title == self.song_name
+    def on_item_clicked(self, _event=None):
+        selection = self.listbox.curselection()
+        if not selection:
+            return
+
+        self.song_name = self.listbox.get(selection[0])
+        self.root.title("舞萌DX成绩图生成器: " + self.song_name)
+        selected_song = where(self.dxdata, lambda x: x.title == self.song_name)
+        if len(selected_song) != 1:
+            return
+
+        song = selected_song[0]
+        if len(song.types) == 1:
+            self.song_type_var.set("standard" if song.types[0] == "std" else "dx")
+            self.song_type_label.pack_forget()
+            self.song_type_combo.pack_forget()
+        else:
+            if not self.song_type_label.winfo_ismapped():
+                self.song_type_label.pack(anchor="w")
+            if not self.song_type_combo.winfo_ismapped():
+                self.song_type_combo.pack(fill="x", pady=(0, 8))
+
+    def _sync_play_log_visibility(self):
+        if self.show_first_var.get():
+            self.play_log_first_combo.pack(fill="x", pady=(0, 8))
+        else:
+            self.play_log_first_combo.pack_forget()
+
+        if self.show_second_var.get():
+            self.play_log_second_combo.pack(fill="x", pady=(0, 8))
+        else:
+            self.play_log_second_combo.pack_forget()
+
+    def on_check_box_first_change(self):
+        self.show_first = self.show_first_var.get()
+        self._sync_play_log_visibility()
+
+    def on_check_box_second_change(self):
+        self.show_second = self.show_second_var.get()
+        self._sync_play_log_visibility()
+
+    def on_score_change(self, *_):
+        score_text = self.score_var.get().strip()
+        if not score_text:
+            self.score = 0.0
+            return
+
+        try:
+            self.score = float(score_text)
+        except ValueError:
+            return
+
+        if self.score == 101.0:
+            self.play_log_first_var.set("applus")
+        else:
+            self.play_log_first_var.set("ap")
+
+    def _generate_image_async(self, params: dict):
+        try:
+            generate_score_image(**params)
+        except Exception as error:
+            self.root.after(
+                0,
+                lambda error_message=str(error): self._on_generate_failed(
+                    error_message
+                ),
+            )
+            return
+
+        self.root.after(0, self._on_generate_success)
+
+    def _on_generate_failed(self, error_message: str):
+        self.submit_button.config(state="normal")
+        messagebox.showerror("生成失败", error_message, parent=self.root)
+
+    def _on_generate_success(self):
+        self.submit_button.config(state="normal")
+        messagebox.showinfo(
+            "完成", "图片已保存为output.png和output43.png", parent=self.root
         )
-        if len(selected_song) == 1:
-            song = selected_song[0]
-            if len(song.types) == 1:
-                self.song_type_combo.hide()
-                self.song_type_label.hide()
-                self.song_type_combo.setCurrentIndex(0 if song.types[0] == "std" else 1)
-            elif len(song.types) == 2:
-                self.song_type_combo.show()
-                self.song_type_label.show()
 
     def on_submit(self):
         if not self.song_name:
-            QMessageBox.warning(self, "错误", "请先选择歌曲")
+            messagebox.showwarning("错误", "请先选择歌曲", parent=self.root)
             return
 
-        generate_score_image(
+        try:
+            score = float(self.score_var.get().strip())
+        except ValueError:
+            messagebox.showwarning("错误", "请输入正确的数字", parent=self.root)
+            return
+
+        self.score = score
+        self.submit_button.config(state="disabled")
+        params = dict(
             song_name=self.song_name,
             score=self.score,
-            difficulty=self.difficulty_combo.currentText(),
-            dx_rank=self.dx_rank_combo.currentText(),
-            song_type=self.song_type_combo.currentText(),
-            show_first=self.show_first,
-            first_log=self.play_log_combo_first.currentText()
-            if self.show_first
+            difficulty=self.difficulty_var.get(),
+            dx_rank=self.dx_rank_var.get(),
+            song_type=self.song_type_var.get(),
+            show_first=self.show_first_var.get(),
+            first_log=self.play_log_first_var.get()
+            if self.show_first_var.get()
             else None,
-            show_second=self.show_second,
-            second_log=self.play_log_combo_second.currentText()
-            if self.show_second
+            show_second=self.show_second_var.get(),
+            second_log=self.play_log_second_var.get()
+            if self.show_second_var.get()
             else None,
         )
+        threading.Thread(
+            target=self._generate_image_async, args=(params,), daemon=True
+        ).start()
 
-        QMessageBox.information(self, "完成", "图片已保存为output.png和output43.png")
-
-    def on_score_change(self, score: str):
-        try:
-            self.score = float(score) if score != "" else 0
-            if self.score == 101.0:
-                self.play_log_combo_first.setCurrentText("applus")
-            else:
-                self.play_log_combo_first.setCurrentText("ap")
-        except ValueError:
-            QMessageBox.warning(self, "错误", "请输入正确的数字")
-
-    def on_check_box_first_change(self, state: bool):
-        self.show_first = state
-        if state:
-            self.play_log_combo_first.show()
-        else:
-            self.play_log_combo_first.hide()
-
-    def on_check_box_second_change(self, state: bool):
-        self.show_second = state
-        if state:
-            self.play_log_combo_second.show()
-        else:
-            self.play_log_combo_second.hide()
-
-    def draw_text_with_outline(
-        self,
-        draw: ImageDraw.ImageDraw,
-        position: tuple[float, float],
-        text: str,
-        font: ImageFont.FreeTypeFont,
-        text_color: tuple[int, int, int] = (255, 255, 255),
-        outline_color: tuple[int, int, int] = (0, 0, 0),
-        offsets: list[tuple[int, int]] = [(-2, -2), (-2, 2), (2, -2), (2, 2)],
-    ):
-        for dx, dy in offsets:
-            draw.text(
-                (position[0] + dx, position[1] + dy),
-                text,
-                font=font,
-                fill=outline_color,
-            )
-        draw.text(position, text, font=font, fill=text_color)
+    def run(self):
+        self.root.mainloop()
 
 
 def resource_path(relative_path):
     # 打包后运行时会有 _MEIPASS 变量
     if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(getattr(sys, "_MEIPASS"), relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
 
@@ -373,12 +407,7 @@ def generate_score_image(
     songs = init_data()
     selected_song: list[SimplifiedSong] = where(songs, lambda x: x.title == song_name)
     if len(selected_song) != 0:
-        bg_thread = DownloadThread(
-            f"{selected_song[0].title}", selected_song[0].dimg_url()
-        )
-        bg_thread.run()
-        while not bg_thread.end():
-            continue
+        download_file(selected_song[0].dimg_url(), "bg.png")
     else:
         return
     bg_path = Path("bg.png")
@@ -531,6 +560,39 @@ def generate_score_image(
     canvas43.save(output_43_path)
 
 
+def main():
+    if len(sys.argv) > 1:
+        args = parse_args()
+        try:
+            generate_score_image(
+                song_name=args.song,
+                score=args.score,
+                difficulty=args.difficulty,
+                dx_rank=args.dx_rank,
+                song_type=args.song_type,
+                show_first=args.show_first,
+                first_log=args.first_log,
+                show_second=args.show_second,
+                second_log=args.second_log,
+                output_path=args.output,
+                output_43_path=args.output43,
+            )
+            print(f"图片已成功生成：{args.output}")
+            if args.output43:
+                print(f"4:3比例图片已生成：{args.output43}")
+        except Exception as exc:
+            print(f"生成失败：{str(exc)}")
+            sys.exit(1)
+        return
+
+    try:
+        app = MaimaiScorePicGeneratorApp()
+    except Exception as exc:
+        print(f"启动失败：{str(exc)}")
+        sys.exit(1)
+    app.run()
+
+
 def parse_args():
     """命令行参数解析"""
     parser = argparse.ArgumentParser(description="舞萌DX成绩图生成器")
@@ -564,37 +626,4 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    # 命令行模式
-    if len(sys.argv) > 1:
-        args = parse_args()
-        try:
-            generate_score_image(
-                song_name=args.song,
-                score=args.score,
-                difficulty=args.difficulty,
-                dx_rank=args.dx_rank,
-                song_type=args.song_type,
-                show_first=args.show_first,
-                first_log=args.first_log,
-                show_second=args.show_second,
-                second_log=args.second_log,
-                output_path=args.output,
-                output_43_path=args.output43,
-            )
-            print(f"图片已成功生成：{args.output}")
-            if args.output43:
-                print(f"4:3比例图片已生成：{args.output43}")
-        except Exception as e:
-            print(f"生成失败：{str(e)}")
-            sys.exit(1)
-
-    # GUI模式
-    else:
-        app = QApplication(sys.argv)
-        try:
-            window = MaimaiScorePicGeneratorApp()
-        except Exception as exc:
-            QMessageBox.critical(None, "启动失败", str(exc))
-            sys.exit(1)
-        window.show()
-        sys.exit(app.exec())
+    main()

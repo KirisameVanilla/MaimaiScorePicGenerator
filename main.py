@@ -1,5 +1,8 @@
+from MaimaiScorePicGenerator import main as run_app
+
+
 def main():
-    print("Hello from maimaiscorepicgenerator!")
+    run_app()
 
 
 if __name__ == "__main__":
